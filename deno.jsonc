@@ -1,0 +1,30 @@
+{
+  "tasks": {
+    "dev": "deno run --watch mod.ts"
+  },
+
+  "lint": {
+    "files": {
+      "include": ["./"],
+      "exclude": ["./testdata/", "./npm/"]
+    },
+    "rules": {
+      "tags": ["recommended"],
+      "include": ["ban-untagged-todo", "no-external-import"],
+      "exclude": ["no-explicit-any"]
+    }
+  },
+  "fmt": {
+    "files": {
+      "include": ["./"],
+      "exclude": ["./testdata/", "./npm/"]
+    },
+    "options": {
+      "useTabs": false,
+      "lineWidth": 80,
+      "indentWidth": 2,
+      "singleQuote": true,
+      "proseWrap": "preserve"
+    }
+  }
+}
