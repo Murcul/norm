@@ -1,4 +1,4 @@
-import { pgStructure, typeMapping } from "./deps.ts";
+import { pgStructure, typeMapping } from './deps.ts';
 
 interface IColumnType {
   nullable: boolean;
@@ -136,7 +136,7 @@ export class TypeGenerator {
 
     Deno.writeTextFileSync(
       outputFile,
-      typing
+      typing,
     );
 
     return typing;

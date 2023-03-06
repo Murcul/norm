@@ -1,0 +1,8 @@
+{
+  "name": "norm",
+  "type": "module",
+  "dependencies": {
+    "pg-structure": "^7.13.1",
+    "zod": "^3.20.6"
+  }
+}
