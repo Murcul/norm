@@ -113,7 +113,7 @@ describe('updateEntity', () => {
 
 describe('upsertEntity', () => {
   it(
-    'should return upsert statement',
+    'should skip maybe columns with undefined values',
     async () => {
       const db = getDB();
 
@@ -134,6 +134,104 @@ describe('upsertEntity', () => {
         ['title'],
         ['id'],
         { ticket_id: '1', id: '2', title: undefined },
+      );
+
+      assertSpyCall(querySpy, 0, {
+        args: [expectedSql, ['1', '2']],
+        returned: Promise.resolve({ rows: [] }),
+      });
+    },
+  );
+
+  it(
+    'should include maybe columns with null values',
+    async () => {
+      const db = getDB();
+
+      const querySpy = spy(db, 'query');
+
+      const norm = new Norm<DbSchema>(db);
+
+      const expectedSql =
+        `insert into "public"."activities" ("ticket_id", "id", "instance_id") 
+    values ($1,$2,$3)
+    on conflict ("id") do update set "ticket_id" = excluded."ticket_id", "instance_id" = excluded."instance_id"
+    returning "ticket_id", "id", "instance_id";`;
+
+      await norm.upsertEntity(
+        'public',
+        'activities',
+        ['ticket_id', 'id'],
+        ['instance_id'],
+        ['id'],
+        { ticket_id: '1', id: '2', instance_id: null },
+      );
+
+      assertSpyCall(querySpy, 0, {
+        args: [expectedSql, ['1', '2', null]],
+        returned: Promise.resolve({ rows: [] }),
+      });
+    },
+  );
+
+  it(
+    'should include maybe columns with actual values',
+    async () => {
+      const db = getDB();
+
+      const querySpy = spy(db, 'query');
+
+      const norm = new Norm<DbSchema>(db);
+
+      const expectedSql =
+        `insert into "public"."activities" ("ticket_id", "id", "title", "related_entity") 
+    values ($1,$2,$3,$4)
+    on conflict ("id") do update set "ticket_id" = excluded."ticket_id", "title" = excluded."title", "related_entity" = excluded."related_entity"
+    returning "ticket_id", "id", "title", "related_entity";`;
+
+      await norm.upsertEntity(
+        'public',
+        'activities',
+        ['ticket_id', 'id'],
+        ['title', 'related_entity'],
+        ['id'],
+        {
+          ticket_id: '1',
+          id: '2',
+          title: 'title',
+          related_entity: 'related_entity',
+        },
+      );
+
+      assertSpyCall(querySpy, 0, {
+        args: [expectedSql, ['1', '2', 'title', 'related_entity']],
+        returned: Promise.resolve({ rows: [] }),
+      });
+    },
+  );
+
+  it(
+    'should return statement with empty maybe columns',
+    async () => {
+      const db = getDB();
+
+      const querySpy = spy(db, 'query');
+
+      const norm = new Norm<DbSchema>(db);
+
+      const expectedSql =
+        `insert into "public"."activities" ("ticket_id", "id") 
+    values ($1,$2)
+    on conflict ("id") do update set "ticket_id" = excluded."ticket_id"
+    returning "ticket_id", "id";`;
+
+      await norm.upsertEntity(
+        'public',
+        'activities',
+        ['ticket_id', 'id'],
+        [],
+        ['id'],
+        { ticket_id: '1', id: '2' },
       );
 
       assertSpyCall(querySpy, 0, {
