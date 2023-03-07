@@ -1,5 +1,5 @@
 import { quoteAndJoin } from './helpers.ts';
-import { DBClient, SchemaBase } from './types.ts';
+import { DBClient, NonEmptyArray, SchemaBase } from './types.ts';
 
 export class Norm<DbSchema extends SchemaBase> {
   constructor(private dbClient: DBClient) {
@@ -18,7 +18,7 @@ export class Norm<DbSchema extends SchemaBase> {
   getEntities = async <
     S extends keyof DbSchema,
     T extends keyof DbSchema[S],
-    SC extends Array<keyof DbSchema[S][T]>,
+    SC extends NonEmptyArray<keyof DbSchema[S][T]>,
   >(
     schema: S,
     tableName: T,
@@ -71,8 +71,8 @@ export class Norm<DbSchema extends SchemaBase> {
   updateEntity = async <
     S extends keyof DbSchema,
     T extends keyof DbSchema[S],
-    UC extends Array<keyof DbSchema[S][T]>,
-    WC extends Array<keyof DbSchema[S][T]>,
+    UC extends NonEmptyArray<keyof DbSchema[S][T]>,
+    WC extends NonEmptyArray<keyof DbSchema[S][T]>,
   >(
     schema: S,
     tableName: T,
@@ -130,9 +130,6 @@ export class Norm<DbSchema extends SchemaBase> {
       nonUndefinedValues[column]
     );
 
-    //TODO(@Merkll): ensure filteredColumnsToUpdate has at least a column
-    //TODO(@Merkll): ensure whereColumns has at least a column
-
     const preparedQuery = `update "${String(schema)}"."${
       String(tableName)
     }" set 
@@ -179,14 +176,14 @@ returning ${quoteAndJoin(columnsToReturn)};`;
   upsertEntity = async <
     S extends keyof DbSchema,
     T extends keyof DbSchema[S],
-    RC extends Array<keyof DbSchema[S][T]>,
+    RC extends NonEmptyArray<keyof DbSchema[S][T]>,
     MC extends Array<Exclude<keyof DbSchema[S][T], RC[number]>>,
   >(
     schema: S,
     tableName: T,
     requiredColumns: RC,
     maybeColumns: MC,
-    conflictingColumns: Array<RC[number]>,
+    conflictingColumns: NonEmptyArray<RC[number]>,
     values:
       & {
         [requiredKey in RC[number]]: DbSchema[S][T][requiredKey];

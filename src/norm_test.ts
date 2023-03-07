@@ -18,15 +18,15 @@ describe('getEntities', () => {
 
       const norm = new Norm<DbSchema>(db);
 
-      await norm.getEntities('public', 'activities', [
+      await norm.getEntities('public', 'city', [
         'id',
-        'ticket_id',
-        'title',
+        'name',
+        'countrycode',
       ], {});
 
       assertSpyCall(querySpy, 0, {
         args: [
-          'select ("id", "ticket_id", "title") from "public"."activities" where true;',
+          'select ("id", "name", "countrycode") from "public"."city" where true;',
           [],
         ],
         returned: Promise.resolve({ rows: [] }),
@@ -43,16 +43,16 @@ describe('getEntities', () => {
 
       const norm = new Norm<DbSchema>(db);
 
-      await norm.getEntities('public', 'activities', [
+      await norm.getEntities('public', 'city', [
         'id',
-        'ticket_id',
-        'title',
-      ], { id: ['1'] });
+        'name',
+        'countrycode',
+      ], { id: [1] });
 
       assertSpyCall(querySpy, 0, {
         args: [
-          'select ("id", "ticket_id", "title") from "public"."activities" where "id" in ($1);',
-          ['1'],
+          'select ("id", "name", "countrycode") from "public"."city" where "id" in ($1);',
+          [1],
         ],
         returned: Promise.resolve({ rows: [] }),
       });
@@ -68,16 +68,16 @@ describe('getEntities', () => {
 
       const norm = new Norm<DbSchema>(db);
 
-      await norm.getEntities('public', 'activities', [
+      await norm.getEntities('public', 'city', [
         'id',
-        'ticket_id',
-        'title',
-      ], { title: ['1'], assigned_user_id: ['1'] });
+        'name',
+        'countrycode',
+      ], { name: ['name'], countrycode: ['countrycode'] });
 
       assertSpyCall(querySpy, 0, {
         args: [
-          'select ("id", "ticket_id", "title") from "public"."activities" where "title" in ($1) OR "assigned_user_id" in ($2);',
-          ['1', '1'],
+          'select ("id", "name", "countrycode") from "public"."city" where "name" in ($1) OR "countrycode" in ($2);',
+          ['name', 'countrycode'],
         ],
         returned: Promise.resolve({ rows: [] }),
       });
@@ -95,15 +95,15 @@ describe('updateEntity', () => {
 
       const norm = new Norm<DbSchema>(db);
 
-      await norm.updateEntity('public', 'activities', ['title'], ['id'], {
-        title: 'title',
-        id: '1',
+      await norm.updateEntity('public', 'city', ['name'], ['id'], {
+        name: 'title',
+        id: 1,
       });
 
       assertSpyCall(querySpy, 0, {
         args: [
-          'update "public"."activities" set \n "title" = $1\nwhere "id" = $2\nreturning "title", "id";',
-          ['title', '1'],
+          'update "public"."city" set \n "name" = $1\nwhere "id" = $2\nreturning "name", "id";',
+          ['title', 1],
         ],
         returned: Promise.resolve({ rows: [] }),
       });
@@ -121,23 +121,22 @@ describe('upsertEntity', () => {
 
       const norm = new Norm<DbSchema>(db);
 
-      const expectedSql =
-        `insert into "public"."activities" ("ticket_id", "id") 
+      const expectedSql = `insert into "public"."city" ("name", "id") 
     values ($1,$2)
-    on conflict ("id") do update set "ticket_id" = excluded."ticket_id"
-    returning "ticket_id", "id", "title";`;
+    on conflict ("id") do update set "name" = excluded."name"
+    returning "name", "id", "countrycode";`;
 
       await norm.upsertEntity(
         'public',
-        'activities',
-        ['ticket_id', 'id'],
-        ['title'],
+        'city',
+        ['name', 'id'],
+        ['countrycode'],
         ['id'],
-        { ticket_id: '1', id: '2', title: undefined },
+        { name: 'name', id: 2, countrycode: undefined },
       );
 
       assertSpyCall(querySpy, 0, {
-        args: [expectedSql, ['1', '2']],
+        args: [expectedSql, ['name', 2]],
         returned: Promise.resolve({ rows: [] }),
       });
     },
@@ -153,22 +152,22 @@ describe('upsertEntity', () => {
       const norm = new Norm<DbSchema>(db);
 
       const expectedSql =
-        `insert into "public"."activities" ("ticket_id", "id", "instance_id") 
+        `insert into "public"."country" ("continent", "code", "headofstate") 
     values ($1,$2,$3)
-    on conflict ("id") do update set "ticket_id" = excluded."ticket_id", "instance_id" = excluded."instance_id"
-    returning "ticket_id", "id", "instance_id";`;
+    on conflict ("code") do update set "continent" = excluded."continent", "headofstate" = excluded."headofstate"
+    returning "continent", "code", "headofstate";`;
 
       await norm.upsertEntity(
         'public',
-        'activities',
-        ['ticket_id', 'id'],
-        ['instance_id'],
-        ['id'],
-        { ticket_id: '1', id: '2', instance_id: null },
+        'country',
+        ['continent', 'code'],
+        ['headofstate'],
+        ['code'],
+        { continent: 'continent', code: 'code', headofstate: null },
       );
 
       assertSpyCall(querySpy, 0, {
-        args: [expectedSql, ['1', '2', null]],
+        args: [expectedSql, ['continent', 'code', null]],
         returned: Promise.resolve({ rows: [] }),
       });
     },
@@ -184,27 +183,27 @@ describe('upsertEntity', () => {
       const norm = new Norm<DbSchema>(db);
 
       const expectedSql =
-        `insert into "public"."activities" ("ticket_id", "id", "title", "related_entity") 
+        `insert into "public"."country" ("continent", "code", "headofstate", "gnp") 
     values ($1,$2,$3,$4)
-    on conflict ("id") do update set "ticket_id" = excluded."ticket_id", "title" = excluded."title", "related_entity" = excluded."related_entity"
-    returning "ticket_id", "id", "title", "related_entity";`;
+    on conflict ("code") do update set "continent" = excluded."continent", "headofstate" = excluded."headofstate", "gnp" = excluded."gnp"
+    returning "continent", "code", "headofstate", "gnp";`;
 
       await norm.upsertEntity(
         'public',
-        'activities',
-        ['ticket_id', 'id'],
-        ['title', 'related_entity'],
-        ['id'],
+        'country',
+        ['continent', 'code'],
+        ['headofstate', 'gnp'],
+        ['code'],
         {
-          ticket_id: '1',
-          id: '2',
-          title: 'title',
-          related_entity: 'related_entity',
+          continent: 'continent',
+          code: 'code',
+          headofstate: 'headofstate',
+          gnp: 'gnp',
         },
       );
 
       assertSpyCall(querySpy, 0, {
-        args: [expectedSql, ['1', '2', 'title', 'related_entity']],
+        args: [expectedSql, ['continent', 'code', 'headofstate', 'gnp']],
         returned: Promise.resolve({ rows: [] }),
       });
     },
@@ -219,23 +218,22 @@ describe('upsertEntity', () => {
 
       const norm = new Norm<DbSchema>(db);
 
-      const expectedSql =
-        `insert into "public"."activities" ("ticket_id", "id") 
+      const expectedSql = `insert into "public"."country" ("continent", "code") 
     values ($1,$2)
-    on conflict ("id") do update set "ticket_id" = excluded."ticket_id"
-    returning "ticket_id", "id";`;
+    on conflict ("code") do update set "continent" = excluded."continent"
+    returning "continent", "code";`;
 
       await norm.upsertEntity(
         'public',
-        'activities',
-        ['ticket_id', 'id'],
+        'country',
+        ['continent', 'code'],
         [],
-        ['id'],
-        { ticket_id: '1', id: '2' },
+        ['code'],
+        { continent: 'continent', code: 'code' },
       );
 
       assertSpyCall(querySpy, 0, {
-        args: [expectedSql, ['1', '2']],
+        args: [expectedSql, ['continent', 'code']],
         returned: Promise.resolve({ rows: [] }),
       });
     },

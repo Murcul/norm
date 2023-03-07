@@ -6,7 +6,11 @@
   "lint": {
     "files": {
       "include": ["./"],
-      "exclude": ["./testdata/", "./npm/"]
+      "exclude": [
+        "./testdata/",
+        "./npm/",
+        "src/test/fixtures/norm-schema.type.ts"
+      ]
     },
     "rules": {
       "tags": ["recommended"],
@@ -17,7 +21,11 @@
   "fmt": {
     "files": {
       "include": ["./"],
-      "exclude": ["./testdata/", "./npm/"]
+      "exclude": [
+        "./testdata/",
+        "./npm/",
+        "src/test/fixtures/norm-schema.type.ts"
+      ]
     },
     "options": {
       "useTabs": false,

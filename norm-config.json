@@ -1,7 +1,7 @@
 {
   "database": {
     "host": "localhost",
-    "database": "engine",
+    "database": "world",
     "user": "postgres",
     "password": "test"
   }

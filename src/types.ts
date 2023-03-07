@@ -8,6 +8,7 @@ export type SupportedTypes =
   | string
   | boolean
   | Date
+  // deno-lint-ignore ban-types
   | object
   | null
   | undefined
@@ -18,7 +19,10 @@ export interface SchemaBase {
   [key: string]: {
     //table
     [key: string]: {
+      //column
       [key: string]: SupportedTypes;
     };
   };
 }
+
+export type NonEmptyArray<T> = [T, ...T[]];

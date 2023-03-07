@@ -1,0 +1,54 @@
+name: Deno Check
+
+on:
+  push:
+    branches: ["main", "dev"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: { projects: ['./services/test', './shared/db', './services/github', './shared/sync', './shared/auth', './shared/graphql', './shared/test_utils', './services/stripe', './shared/github', './services/public-stats', './services/ticket_templates'] }
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: aa8y/postgres-dataset:world
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_USER: postgres
+          POSTGRES_DB: world
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.31.1
+
+      - name: Verify formatting
+        working-directory: ${{ matrix.projects }}
+        run: deno fmt --check
+
+      - name: Run linter
+        working-directory: ${{ matrix.projects }}
+        run: deno lint
+
+      - name: Run Deno Check 
+        working-directory: ${{ matrix.projects }}
+        run: deno check main.ts
+
+      - name: Run tests
+        working-directory: ${{ matrix.projects }}
+        run: deno test --check -A --parallel

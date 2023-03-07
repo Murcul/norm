@@ -26,12 +26,16 @@ export const runTypeGenerator = async () => {
   const outputFile = path.join(Deno.cwd(), `./norm-schema.type.ts`);
 
   try {
-    await typeGenerator.generate(outputFile);
+    const typings = await typeGenerator.generate(outputFile);
 
     console.log(`✅ Generated norm schema to `);
+
+    return typings;
   } catch (error) {
     console.log('❌ error generating norm schema', error);
   }
 };
 
-runTypeGenerator();
+if (import.meta.main) {
+  runTypeGenerator();
+}
