@@ -1,6 +1,12 @@
 {
   "name": "norm",
   "type": "module",
+  "scripts": {
+    "format": "deno fmt",
+    "build:npm": "deno run --allow-env --allow-net --allow-write --allow-read --allow-run  src/build_npm.ts",
+    "lint": "deno lint",
+    "test": "deno test -A"
+  },
   "dependencies": {
     "pg-structure": "^7.13.1",
     "zod": "^3.20.6"
