@@ -185,6 +185,17 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       | null;
   };
 
+  /**
+   * Used to bulk update the entity in the database.
+   *
+   * @param schema database schema to insert the entity into, usually it'll be `public`
+   * @param tableName table name to insert the entity into
+   * @param columnsToUpdate to update in the database entity
+   * @param whereColumns columns used to select the entity to update
+   * @param updatedValues array of objects that must contain all the `whereColumns` and may contain `columnsToUpdate` (missing keys are skipped)
+   *
+   * @returns promise that resolves to an array of updated entity with `requiredColumns` and `maybeColumns`
+   */
   bulkUpdateEntities = async <
     S extends keyof DbSchema,
     T extends keyof DbSchema[S],
@@ -393,6 +404,16 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       | null;
   };
 
+  /**
+   * Used to bulk upsert (insert or update on conflict) the entity into the database.
+   *
+   * @param schema database schema to insert the entity into, usually it'll be `public`
+   * @param tableName table name to insert the entity into
+   * @param requiredColumns colums that need to be passed in as values of the inserted object
+   * @param maybeColumns any optional columns that will be picked from the passed in object and inserted into the db
+   * @param values array of objects that must contain all the `whereColumns` and may contain `maybeColumns` (missing keys are skipped)
+   * @returns promise that resolves to an array of inserted entity with `requiredColumns` and `maybeColumns`
+   */
   bulkUpsertEntity = async <
     S extends keyof DbSchema,
     T extends keyof DbSchema[S],
