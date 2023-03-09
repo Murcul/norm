@@ -11,8 +11,6 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix: { projects: ['./services/test', './shared/db', './services/github', './shared/sync', './shared/auth', './shared/graphql', './shared/test_utils', './services/stripe', './shared/github', './services/public-stats', './services/ticket_templates'] }
     timeout-minutes: 20
     services:
       postgres:

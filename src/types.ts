@@ -25,4 +25,5 @@ export interface SchemaBase {
   };
 }
 
+export type ColumnMapping = { [key: string]: SupportedTypes };
 export type NonEmptyArray<T> = [T, ...T[]];

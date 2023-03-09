@@ -6,5 +6,6 @@ services:
     environment:
       - POSTGRES_PASSWORD=test
       - POSTGRES_USER=postgres
+    command: ["postgres", "-c", "log_statement=all"]
     ports:
       - 5432:5432

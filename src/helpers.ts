@@ -1,3 +1,8 @@
-export const quoteAndJoin = (list: Array<string | number | symbol>): string => {
-  return list.map((el) => `"${String(el)}"`).join(', ');
+export const quoteAndJoin = (
+  list: Array<string | number | symbol>,
+  prefix?: string,
+): string => {
+  return list.map((el) =>
+    prefix ? `${prefix}."${String(el)}"` : `"${String(el)}"`
+  ).join(', ');
 };
