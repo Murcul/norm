@@ -1,7 +1,6 @@
-import { dnt, copy } from './dev_deps.ts';
+import { dnt } from './dev_deps.ts';
 
-await Deno.remove("npm", { recursive: true }).catch((_) => {});
-await copy("patches", "npm/patches", { overwrite: true });
+await Deno.remove('npm', { recursive: true }).catch((_) => {});
 
 await dnt.build({
   entryPoints: [
@@ -15,8 +14,13 @@ await dnt.build({
   outDir: './npm',
   skipSourceOutput: true,
   shims: {
-    crypto: true,
     deno: true,
+    custom: [
+      {
+        module: './src/shims/crypto.ts',
+        globalNames: ['crypto'],
+      },
+    ],
   },
   typeCheck: false,
   test: false,
@@ -26,14 +30,8 @@ await dnt.build({
     version: Deno.args[0]?.replace(/^v/, ''),
     description: '<discription>',
     license: 'MIT',
-    scripts: {
-      "postinstall": "patch-package"
-    },
     bin: {
-      norm: "./script/cli.js"
+      norm: './script/cli.js',
     },
-    dependencies: {
-      "patch-package": "^6.5.1",
-    }
   },
 });
