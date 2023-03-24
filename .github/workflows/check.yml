@@ -41,7 +41,7 @@ jobs:
         run: deno lint
 
       - name: Run Deno Check 
-        run: deno check main.ts
+        run: deno check src/mod.ts
 
       - name: Run tests
         run: deno test --check -A --parallel
