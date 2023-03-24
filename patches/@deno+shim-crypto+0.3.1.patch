@@ -1,0 +1,16 @@
+diff --git a/node_modules/@deno/shim-crypto/dist/index.js b/node_modules/@deno/shim-crypto/dist/index.js
+index 8d0ec4d..076a084 100644
+--- a/node_modules/@deno/shim-crypto/dist/index.js
++++ b/node_modules/@deno/shim-crypto/dist/index.js
+@@ -17,9 +17,10 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
+ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.crypto = void 0;
+ const crypto_1 = require("crypto");
++console.log(require("crypto"));
+ // At the time of writing this, DefinitelyTyped is missing types for webcrypto for Node.
+ // The workaround is to just use the types from lib.dom.ts and hope people are
+ // running unit tests in order to find any issues.
+-const crypto = crypto_1.webcrypto;
++const crypto = crypto_1;
+ exports.crypto = crypto;
+ __exportStar(require("./crypto.types.gen.js"), exports);
