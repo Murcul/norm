@@ -1,5 +1,5 @@
 import { TypeGenerator } from './type-generator.ts';
-import { path, z } from './deps.ts';
+import { connectionString, parse, path, z } from './deps.ts';
 
 const databaseInfo = z.object({
   host: z.string(),
@@ -9,20 +9,34 @@ const databaseInfo = z.object({
 });
 
 const normConfigSchema = z.object({
-  database: databaseInfo,
+  database: databaseInfo.optional(),
   filePath: z.string().optional(),
 });
 
 const normConfigFile = path.join(Deno.cwd(), `./norm-config.json`);
 
+const uriToDBConfig = (uri: string) => {
+  const info = connectionString.parse(uri);
+
+  return databaseInfo.parse(info);
+};
+
 export const runTypeGenerator = async () => {
+  const args = parse(Deno.args);
+
   const { default: normConfig } = await import(normConfigFile, {
     assert: { type: 'json' },
   });
 
   const parsedConfig = normConfigSchema.parse(normConfig, {});
 
-  const typeGenerator = new TypeGenerator(normConfig.database);
+  const dbConfig = args.uri ? uriToDBConfig(args.uri) : normConfig.database;
+
+  if (!dbConfig) {
+    throw new Error('❌ Database credentials not provided');
+  }
+
+  const typeGenerator = new TypeGenerator(dbConfig);
 
   const typeDir = parsedConfig.filePath
     ? path.join(Deno.cwd(), parsedConfig.filePath)
