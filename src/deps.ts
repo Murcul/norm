@@ -3,7 +3,6 @@ export * as path from 'https://deno.land/std@0.175.0/path/mod.ts';
 export { Buffer } from 'https://deno.land/std@0.178.0/io/buffer.ts';
 export { typeMapping } from './pg-type-mapping.ts';
 export { z } from 'npm:zod';
-
 export { default as merge } from 'https://deno.land/x/lodash@4.17.15-es/merge.js';
 
 export {

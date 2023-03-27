@@ -1,4 +1,4 @@
-import { pgStructure, typeMapping } from './deps.ts';
+import { path, pgStructure, typeMapping } from './deps.ts';
 
 interface IColumnType {
   nullable: boolean;
@@ -111,14 +111,8 @@ export class TypeGenerator {
     });
   }
 
-  async generate(outputFile: string) {
-    await this.init();
-
-    if (!this.db) {
-      throw new Error('DB not initilized');
-    }
-
-    const dbTypings = this.buildDBType(this.db);
+  private generateType() {
+    const dbTypings = this.buildDBType(this.db!);
 
     const dbSchema = Object.entries(dbTypings).map(([schema, tables]) => {
       return `"${schema}": {
@@ -127,15 +121,27 @@ export class TypeGenerator {
     });
 
     const typing = `
-  import { z } from "zod";
-  
   export type DbSchema = {
     ${dbSchema}
   };
   `;
 
+    return typing;
+  }
+
+  async generate(outputDir: string) {
+    await this.init();
+
+    if (!this.db) {
+      throw new Error('DB not initilized');
+    }
+
+    const typeFile = path.join(outputDir, './norm-schema.type.ts');
+
+    const typing = this.generateType();
+
     Deno.writeTextFileSync(
-      outputFile,
+      typeFile,
       typing,
     );
 

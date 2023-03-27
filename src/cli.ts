@@ -10,6 +10,7 @@ const databaseInfo = z.object({
 
 const normConfigSchema = z.object({
   database: databaseInfo,
+  filePath: z.string().optional(),
 });
 
 const normConfigFile = path.join(Deno.cwd(), `./norm-config.json`);
@@ -19,14 +20,20 @@ export const runTypeGenerator = async () => {
     assert: { type: 'json' },
   });
 
-  normConfigSchema.parse(normConfig, {});
+  const parsedConfig = normConfigSchema.parse(normConfig, {});
 
   const typeGenerator = new TypeGenerator(normConfig.database);
 
-  const outputFile = path.join(Deno.cwd(), `./norm-schema.type.ts`);
+  const typeDir = parsedConfig.filePath
+    ? path.join(Deno.cwd(), parsedConfig.filePath)
+    : Deno.cwd();
+
+  if (parsedConfig.filePath) {
+    await Deno.mkdir(typeDir, { recursive: true });
+  }
 
   try {
-    const typings = await typeGenerator.generate(outputFile);
+    const typings = await typeGenerator.generate(typeDir);
 
     console.log(`✅ Generated norm schema to `);
 

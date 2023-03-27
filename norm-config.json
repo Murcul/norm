@@ -4,5 +4,6 @@
     "database": "world",
     "user": "postgres",
     "password": "test"
-  }
+  },
+  "filePath": "db-types/"
 }
