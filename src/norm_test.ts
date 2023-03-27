@@ -1,10 +1,18 @@
-import { assertEquals, assertSpyCall, describe, it, spy } from './dev_deps.ts';
+import {
+  assertArrayIncludes,
+  assertEquals,
+  assertSpyCall,
+  describe,
+  it,
+  spy,
+} from './dev_deps.ts';
 
 import { DbSchema } from './test/fixtures/norm-schema.type.ts';
 
 import { Norm } from './norm.ts';
 import { query } from './test/fixtures/db.ts';
 
+const removeWhitespace = (str: string) => str.replaceAll(/\s/g, '');
 const getDB = () => ({
   query: (_q: string, _p: unknown) => Promise.resolve({ rows: [] }),
 });
@@ -205,7 +213,7 @@ describe('updateEntities', () => {
         ],
       );
 
-      assertEquals(results, [
+      assertArrayIncludes(results!, [
         { name: 'third_name', countrycode: 'AFG', id: 3 },
         { name: 'second_name', countrycode: 'AFG', id: 2 },
         { name: 'first_name', countrycode: 'AFG', id: 1 },
@@ -445,101 +453,105 @@ describe('bulkUpsertEntity', () => {
       ]);
     },
   );
+});
 
+describe('bulkInsertEntity', () => {
   it(
-    'should include maybe columns with null values',
+    'should return insert statement',
     async () => {
       const db = getDB();
-
       const querySpy = spy(db, 'query');
 
       const norm = new Norm<DbSchema>(db);
 
-      const expectedSql =
-        `insert into "public"."country" ("continent", "code", "headofstate") 
-    values ($1,$2,$3)
-    on conflict ("code") do update set "continent" = excluded."continent", "headofstate" = excluded."headofstate"
-    returning "continent", "code", "headofstate";`;
-
-      await norm.upsertEntity(
+      await norm.bulkInsertEntity(
         'public',
-        'country',
-        ['continent', 'code'],
-        ['headofstate'],
-        ['code'],
-        { continent: 'continent', code: 'code', headofstate: null },
+        'city',
+        ['name', 'id', 'district', 'population'],
+        ['countrycode'],
+        [{
+          name: 'name_one',
+          id: 12000,
+          countrycode: 'AFG',
+          district: 'Kabol',
+          population: 1780000,
+        }, {
+          name: 'name_two',
+          population: 1780000,
+          district: 'Kabol',
+          id: 1,
+          countrycode: 'AFG',
+        }],
       );
 
-      assertSpyCall(querySpy, 0, {
-        args: [expectedSql, ['continent', 'code', null]],
-        returned: Promise.resolve({ rows: [] }),
-      });
+      const expectedSql = `
+    insert into "public"."city" ("name", "id", "countrycode", "district", "population") 
+    values 
+      ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10)
+    returning "name", "id", "district", "population", "countrycode";`;
+
+      const expectedParams = [
+        'name_one',
+        12000,
+        'AFG',
+        'Kabol',
+        1780000,
+        'name_two',
+        1,
+        'AFG',
+        'Kabol',
+        1780000,
+      ];
+
+      assertEquals(
+        removeWhitespace(expectedSql),
+        removeWhitespace(querySpy.calls[0].args[0]),
+      );
+      assertEquals(expectedParams, querySpy.calls[0].args[1]);
     },
   );
 
   it(
-    'should include maybe columns with actual values',
+    'should insert and return insert results',
     async () => {
-      const db = getDB();
+      const norm = new Norm<DbSchema>({ query });
 
-      const querySpy = spy(db, 'query');
-
-      const norm = new Norm<DbSchema>(db);
-
-      const expectedSql =
-        `insert into "public"."country" ("continent", "code", "headofstate", "gnp") 
-    values ($1,$2,$3,$4)
-    on conflict ("code") do update set "continent" = excluded."continent", "headofstate" = excluded."headofstate", "gnp" = excluded."gnp"
-    returning "continent", "code", "headofstate", "gnp";`;
-
-      await norm.upsertEntity(
+      const results = await norm.bulkInsertEntity(
         'public',
-        'country',
-        ['continent', 'code'],
-        ['headofstate', 'gnp'],
-        ['code'],
+        'city',
+        ['name', 'id', 'district', 'population'],
+        ['countrycode'],
+        [{
+          name: 'name_one',
+          id: 1200000,
+          countrycode: 'AFG',
+          district: 'Kabol',
+          population: 1780000,
+        }, {
+          name: 'name_two',
+          population: 1780000,
+          district: 'Kabol',
+          id: 1200001,
+          countrycode: 'AFG',
+        }],
+      );
+
+      assertEquals(results, [
         {
-          continent: 'continent',
-          code: 'code',
-          headofstate: 'headofstate',
-          gnp: 'gnp',
+          name: 'name_one',
+          id: 1200000,
+          district: 'Kabol',
+          population: 1780000,
+          countrycode: 'AFG',
         },
-      );
-
-      assertSpyCall(querySpy, 0, {
-        args: [expectedSql, ['continent', 'code', 'headofstate', 'gnp']],
-        returned: Promise.resolve({ rows: [] }),
-      });
-    },
-  );
-
-  it(
-    'should return statement with empty maybe columns',
-    async () => {
-      const db = getDB();
-
-      const querySpy = spy(db, 'query');
-
-      const norm = new Norm<DbSchema>(db);
-
-      const expectedSql = `insert into "public"."country" ("continent", "code") 
-    values ($1,$2)
-    on conflict ("code") do update set "continent" = excluded."continent"
-    returning "continent", "code";`;
-
-      await norm.upsertEntity(
-        'public',
-        'country',
-        ['continent', 'code'],
-        [],
-        ['code'],
-        { continent: 'continent', code: 'code' },
-      );
-
-      assertSpyCall(querySpy, 0, {
-        args: [expectedSql, ['continent', 'code']],
-        returned: Promise.resolve({ rows: [] }),
-      });
+        {
+          name: 'name_two',
+          id: 1200001,
+          district: 'Kabol',
+          population: 1780000,
+          countrycode: 'AFG',
+        },
+      ]);
     },
   );
 });

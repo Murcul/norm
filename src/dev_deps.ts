@@ -1,5 +1,6 @@
 export * as dnt from 'https://deno.land/x/dnt@0.33.1/mod.ts';
 export {
+  assertArrayIncludes,
   assertEquals,
   assertExists,
 } from 'https://deno.land/std@0.175.0/testing/asserts.ts';

@@ -502,4 +502,88 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       >
       | null;
   };
+
+  /**
+   * Used to bulk insert the entity into the database.
+   *
+   * @param schema database schema to insert the entity into, usually it'll be `public`
+   * @param tableName table name to insert the entity into
+   * @param requiredColumns colums that need to be passed in as values of the inserted object
+   * @param maybeColumns any optional columns that will be picked from the passed in object and inserted into the db
+   * @param values array of objects that must contain all the `whereColumns` and may contain `maybeColumns` (missing keys are skipped)
+   * @returns promise that resolves to an array of inserted entity with `requiredColumns` and `maybeColumns`
+   */
+  bulkInsertEntity = async <
+    S extends keyof DbSchema,
+    T extends keyof DbSchema[S],
+    RC extends NonEmptyArray<keyof DbSchema[S][T]>,
+    MC extends Array<Exclude<keyof DbSchema[S][T], RC[number]>>,
+  >(
+    schema: S,
+    tableName: T,
+    requiredColumns: RC,
+    maybeColumns: MC,
+    values: NonEmptyArray<
+      & {
+        [requiredKey in RC[number]]: DbSchema[S][T][requiredKey];
+      }
+      & {
+        [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
+      }
+    >,
+  ): Promise<Array<Pick<DbSchema[S][T], RC[number] | MC[number]>> | null> => {
+    type C = keyof DbSchema[S][T];
+
+    const nonUndefinedValues = values.map((value) => {
+      return this.getNonUndefinedValues<
+        typeof value,
+        { [key in C]: Array<DbSchema[S][T][C]> }
+      >(value);
+    });
+    const acceptedColumns = [...requiredColumns, ...maybeColumns];
+    const suppliedColumns = merge({}, ...nonUndefinedValues);
+    const columnsWithAtleastAValue = Object.keys(suppliedColumns);
+    const columnsToInsert = columnsWithAtleastAValue.filter((col) =>
+      acceptedColumns.includes(col)
+    );
+
+    const columnsToReturn = [...requiredColumns, ...maybeColumns];
+
+    const { stmts, values: valuesToInsert } = nonUndefinedValues.reduce<
+      { stmts: Array<string[]>; values: any }
+    >(
+      (acc, value, idx) => {
+        const startIdx = idx * columnsToInsert.length;
+
+        const statement = columnsToInsert.map((column, idx) => {
+          acc.values.push(value[column]);
+          return `$${idx + 1 + startIdx}`;
+        });
+        acc.stmts.push(statement);
+        return acc;
+      },
+      { stmts: [], values: [] },
+    );
+
+    const preparedQuery = `
+   insert into "${String(schema)}"."${String(tableName)}" (${
+      quoteAndJoin(
+        columnsToInsert,
+      )
+    }) 
+   values 
+     ${stmts.map((value) => `(${value.join(', ')})`).join(', ')}
+   returning ${quoteAndJoin(columnsToReturn)};`;
+
+    const result = await this.dbClient.query(preparedQuery, valuesToInsert);
+
+    return result.rows as
+      | Array<
+        Pick<
+          DbSchema[S][T],
+          RC[number] | MC[number]
+        >
+      >
+      | null;
+  };
 }
