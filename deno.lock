@@ -515,6 +515,7 @@
   "npm": {
     "specifiers": {
       "cpy-cli@^4.2.0": "cpy-cli@4.2.0",
+      "pg-connection-string@2.5.0": "pg-connection-string@2.5.0",
       "pg-structure": "pg-structure@7.13.1",
       "pg-structure@^7.13.1": "pg-structure@7.13.1",
       "zod": "zod@3.21.4",

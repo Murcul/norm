@@ -1,6 +1,4 @@
 
-  import { z } from "zod";
-  
   export type DbSchema = {
     "public": {
       "city": {
