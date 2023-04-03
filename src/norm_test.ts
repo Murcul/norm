@@ -10,7 +10,7 @@ import {
 import { DbSchema } from './test/fixtures/norm-schema.type.ts';
 
 import { Norm } from './norm.ts';
-import { query } from './test/fixtures/db.ts';
+import { runTestInTransaction } from './test/fixtures/db.ts';
 
 const removeWhitespace = (str: string) => str.replaceAll(/\s/g, '');
 const getDB = () => ({
@@ -186,8 +186,8 @@ describe('updateEntities', () => {
 
   it(
     'should update and return entities',
-    async () => {
-      const norm = new Norm<DbSchema>({ query });
+    runTestInTransaction(async (db) => {
+      const norm = new Norm<DbSchema>(db);
 
       const results = await norm.bulkUpdateEntities(
         'public',
@@ -218,7 +218,7 @@ describe('updateEntities', () => {
         { name: 'second_name', countrycode: 'AFG', id: 2 },
         { name: 'first_name', countrycode: 'AFG', id: 1 },
       ]);
-    },
+    }),
   );
 });
 
@@ -411,8 +411,8 @@ describe('bulkUpsertEntity', () => {
 
   it(
     'should upsert and return upsert results',
-    async () => {
-      const norm = new Norm<DbSchema>({ query });
+    runTestInTransaction(async (db) => {
+      const norm = new Norm<DbSchema>(db);
 
       const results = await norm.bulkUpsertEntity(
         'public',
@@ -451,7 +451,7 @@ describe('bulkUpsertEntity', () => {
           countrycode: 'AFG',
         },
       ]);
-    },
+    }),
   );
 });
 
@@ -513,8 +513,8 @@ describe('bulkInsertEntity', () => {
 
   it(
     'should insert and return insert results',
-    async () => {
-      const norm = new Norm<DbSchema>({ query });
+    runTestInTransaction(async (db) => {
+      const norm = new Norm<DbSchema>(db);
 
       const results = await norm.bulkInsertEntity(
         'public',
@@ -552,6 +552,6 @@ describe('bulkInsertEntity', () => {
           countrycode: 'AFG',
         },
       ]);
-    },
+    }),
   );
 });

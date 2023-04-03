@@ -1,13 +1,34 @@
 import { PGClient } from '../../deps.ts';
+import { DBClient } from '../../types.ts';
 
-const pgClient = new PGClient(
-  'postgresql://postgres:test@localhost:5432/world',
-);
+export const runTestInTransaction = (
+  testCase: (
+    tx: DBClient,
+    ctx: Deno.TestContext,
+  ) => void | Promise<void>,
+) => {
+  const pgClient = new PGClient(
+    'postgresql://postgres:test@localhost:5432/world',
+  );
 
-await pgClient.connect();
+  return async (ctx: Deno.TestContext) => {
+    await pgClient.connect();
 
-export const query = async (query: string, params: any) => {
-  const data = await pgClient.queryObject(query, params);
+    const tx = pgClient.createTransaction('norm_test');
 
-  return { rows: data.rows };
+    await tx.begin();
+
+    const query = async (query: string, params: any) => {
+      return await tx.queryObject(query, params);
+    };
+
+    try {
+      await testCase({ query }, ctx);
+    } catch (error) {
+      throw error;
+    } finally {
+      await tx.rollback();
+      await pgClient.end();
+    }
+  };
 };
