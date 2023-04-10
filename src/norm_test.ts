@@ -382,11 +382,16 @@ describe('bulkUpsertEntity', () => {
       );
 
       const expectedSql = `
-    insert into "public"."city" ("name", "id", "countrycode", "district", "population") 
-    values 
-      ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10)
-    on conflict ("id") do update set "name" = excluded."name", "countrycode" = excluded."countrycode", "district" = excluded."district", "population" = excluded."population"
-    returning "name", "id", "district", "population", "countrycode";`;
+      with _query as (
+        
+        insert into "public"."city" ("name", "id", "countrycode", "district", "population") 
+        values 
+          ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10)
+        on conflict ("id") do update set "name" = excluded."name", "countrycode" = excluded."countrycode", "district" = excluded."district", "population" = excluded."population"
+        returning "name", "id", "district", "population", "countrycode"
+            )
+          select * from _query
+    `;
 
       const expectedParams = [
         'name_one',
@@ -401,54 +406,115 @@ describe('bulkUpsertEntity', () => {
         1780000,
       ];
 
-      assertEquals(expectedSql, querySpy.calls[0].args[0]);
-      assertSpyCall(querySpy, 0, {
-        args: [expectedSql, expectedParams],
-        returned: Promise.resolve({ rows: [] }),
-      });
+      assertEquals(
+        removeWhitespace(expectedSql),
+        removeWhitespace(querySpy.calls[0].args[0]),
+      );
+      assertEquals(expectedParams, querySpy.calls[0].args[1]);
     },
   );
 
   it(
-    'should upsert and return upsert results',
+    'should upsert and return upsert results with maybe column skipped',
     runTestInTransaction(async (db) => {
       const norm = new Norm<DbSchema>(db);
 
       const results = await norm.bulkUpsertEntity(
         'public',
-        'city',
-        ['name', 'id', 'district', 'population'],
-        ['countrycode'],
-        ['id'],
-        [{
-          name: 'name_one',
-          id: 12000,
-          countrycode: 'AFG',
-          district: 'Kabol',
-          population: 1780000,
-        }, {
-          name: 'name_two',
-          population: 1780000,
-          district: 'Kabol',
-          id: 1,
-          countrycode: 'AFG',
-        }],
+        'country',
+        [
+          'name',
+          'region',
+          'continent',
+          'localname',
+          'governmentform',
+          'code2',
+          'surfacearea',
+          'population',
+          'code',
+        ],
+        ['headofstate', 'gnp'],
+        ['code'],
+        [
+          {
+            name: 'name AFG',
+            region: 'region AFG',
+            continent: 'Africa',
+            localname: 'localname AFG',
+            governmentform: 'governmentform AFG',
+            code2: 'CO',
+            surfacearea: 1,
+            population: 1,
+            code: 'AFG',
+          },
+          {
+            name: 'name NLD',
+            region: 'region NLD',
+            continent: 'Africa',
+            localname: 'localname NLD',
+            governmentform: 'governmentformNLD',
+            code2: 'CO',
+            surfacearea: 1,
+            population: 1,
+            code: 'NLD',
+            lifeexpectancy: 1,
+          },
+          {
+            name: 'name ALB',
+            region: 'region ALB',
+            continent: 'Africa',
+            localname: 'localname ALB',
+            governmentform: 'governmentform ALB',
+            code2: 'CO',
+            surfacearea: 1,
+            population: 1,
+            code: 'ALB',
+            lifeexpectancy: 1,
+            headofstate: 'headofstate',
+            gnp: '5000',
+          },
+        ],
       );
 
       assertEquals(results, [
         {
-          name: 'name_one',
-          id: 12000,
-          district: 'Kabol',
-          population: 1780000,
-          countrycode: 'AFG',
+          name: 'name AFG',
+          region: 'region AFG',
+          continent: 'Africa',
+          localname: 'localname AFG',
+          governmentform: 'governmentform AFG',
+          code2: 'CO',
+          surfacearea: '1' as any,
+          population: 1,
+          code: 'AFG',
+          headofstate: 'Mohammad Omar',
+          gnp: '5976.00',
         },
         {
-          name: 'name_two',
-          id: 1,
-          district: 'Kabol',
-          population: 1780000,
-          countrycode: 'AFG',
+          name: 'name ALB',
+          region: 'region ALB',
+          continent: 'Africa',
+          localname: 'localname ALB',
+          governmentform: 'governmentform ALB',
+          code2: 'CO',
+          surfacearea: '1',
+          population: 1,
+          code: 'ALB',
+          headofstate: 'headofstate',
+          gnp: '5000.00',
+        },
+        {
+          name: 'name NLD',
+          region: 'region NLD',
+          continent: 'Africa',
+          localname: 'localname NLD',
+          governmentform: 'governmentformNLD',
+          code2: 'CO',
+          surfacearea: '1',
+          population: 1,
+          code: 'NLD',
+          headofstate: 'Beatrix',
+          gnp: '371362.00',
         },
       ]);
     }),
@@ -467,8 +533,7 @@ describe('bulkInsertEntity', () => {
       await norm.bulkInsertEntity(
         'public',
         'city',
-        ['name', 'id', 'district', 'population'],
-        ['countrycode'],
+        ['name', 'id', 'countrycode', 'district', 'population'],
         [{
           name: 'name_one',
           id: 12000,
@@ -488,7 +553,7 @@ describe('bulkInsertEntity', () => {
     insert into "public"."city" ("name", "id", "countrycode", "district", "population") 
     values 
       ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10)
-    returning "name", "id", "district", "population", "countrycode";`;
+    returning "name", "id", "countrycode", "district", "population";`;
 
       const expectedParams = [
         'name_one',
@@ -519,8 +584,7 @@ describe('bulkInsertEntity', () => {
       const results = await norm.bulkInsertEntity(
         'public',
         'city',
-        ['name', 'id', 'district', 'population'],
-        ['countrycode'],
+        ['name', 'id', 'countrycode', 'district', 'population'],
         [{
           name: 'name_one',
           id: 1200000,

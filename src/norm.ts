@@ -7,6 +7,7 @@ import {
   SupportedTypes,
 } from './types.ts';
 import { merge } from './deps.ts';
+import { SQLBuilder } from './sql-builder.ts';
 export class Norm<DbSchema extends SchemaBase> {
   constructor(private dbClient: DBClient) {
   }
@@ -88,7 +89,7 @@ export class Norm<DbSchema extends SchemaBase> {
    * @param whereColumns columns used to select the entity to update
    * @param updatedValues object that must contain all the `whereColumns` and may contain `columnsToUpdate` (missing keys are skipped)
    *
-   * @returns promise that resolves to an array of inserted entity with `requiredColumns` and `maybeColumns`
+   * @returns promise that resolves to an array of inserted entity
    */
   updateEntity = async <
     S extends keyof DbSchema,
@@ -194,7 +195,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
    * @param whereColumns columns used to select the entity to update
    * @param updatedValues array of objects that must contain all the `whereColumns` and may contain `columnsToUpdate` (missing keys are skipped)
    *
-   * @returns promise that resolves to an array of updated entity with `requiredColumns` and `maybeColumns`
+   * @returns promise that resolves to an array of updated entities
    */
   bulkUpdateEntities = async <
     S extends keyof DbSchema,
@@ -451,45 +452,17 @@ returning ${quoteAndJoin(columnsToReturn)};`;
 
     const columnsToReturn = [...requiredColumns, ...maybeColumns];
 
-    const { stmts, values: valuesToInsert } = nonUndefinedValues.reduce<
-      { stmts: Array<string[]>; values: any }
-    >(
-      (acc, value, idx) => {
-        const startIdx = idx * columnsToInsert.length;
+    const sqlBuilder = new SQLBuilder();
 
-        const statement = columnsToInsert.map((column, idx) => {
-          acc.values.push(value[column]);
-          return `$${idx + 1 + startIdx}`;
-        });
-        acc.stmts.push(statement);
-        return acc;
-      },
-      { stmts: [], values: [] },
-    );
-
-    const onConflictStatement = conflictingColumns.length > 0
-      ? `on conflict (${
-        quoteAndJoin(
-          conflictingColumns,
-        )
-      }) do update set ${
-        columnsToInsert
-          .filter((column) => !conflictingColumns.includes(column))
-          .map((column) => `"${String(column)}" = excluded."${String(column)}"`)
-          .join(', ')
-      }`
-      : '';
-
-    const preparedQuery = `
-    insert into "${String(schema)}"."${String(tableName)}" (${
-      quoteAndJoin(
-        columnsToInsert,
-      )
-    }) 
-    values 
-      ${stmts.map((value) => `(${value.join(', ')})`).join(', ')}
-    ${onConflictStatement}
-    returning ${quoteAndJoin(columnsToReturn)};`;
+    const { preparedQuery, valuesToInsert } = sqlBuilder.GetBuildUpsertSQL({
+      schema,
+      tableName,
+      values,
+      conflictingColumns,
+      columnsToInsert,
+      maybeColumns,
+      columnsToReturn,
+    });
 
     const result = await this.dbClient.query(preparedQuery, valuesToInsert);
 
@@ -502,16 +475,14 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       >
       | null;
   };
-
   /**
    * Used to bulk insert the entity into the database.
    *
    * @param schema database schema to insert the entity into, usually it'll be `public`
    * @param tableName table name to insert the entity into
    * @param requiredColumns colums that need to be passed in as values of the inserted object
-   * @param maybeColumns any optional columns that will be picked from the passed in object and inserted into the db
-   * @param values array of objects that must contain all the `whereColumns` and may contain `maybeColumns` (missing keys are skipped)
-   * @returns promise that resolves to an array of inserted entity with `requiredColumns` and `maybeColumns`
+   * @param values array of objects that must contain all the `whereColumns`
+   * @returns promise that resolves to an array of inserted entities
    */
   bulkInsertEntity = async <
     S extends keyof DbSchema,
@@ -522,7 +493,6 @@ returning ${quoteAndJoin(columnsToReturn)};`;
     schema: S,
     tableName: T,
     requiredColumns: RC,
-    maybeColumns: MC,
     values: NonEmptyArray<
       & {
         [requiredKey in RC[number]]: DbSchema[S][T][requiredKey];
@@ -540,14 +510,14 @@ returning ${quoteAndJoin(columnsToReturn)};`;
         { [key in C]: Array<DbSchema[S][T][C]> }
       >(value);
     });
-    const acceptedColumns = [...requiredColumns, ...maybeColumns];
+    const acceptedColumns = requiredColumns;
     const suppliedColumns = merge({}, ...nonUndefinedValues);
     const columnsWithAtleastAValue = Object.keys(suppliedColumns);
     const columnsToInsert = columnsWithAtleastAValue.filter((col) =>
       acceptedColumns.includes(col)
     );
 
-    const columnsToReturn = [...requiredColumns, ...maybeColumns];
+    const columnsToReturn = requiredColumns;
 
     const { stmts, values: valuesToInsert } = nonUndefinedValues.reduce<
       { stmts: Array<string[]>; values: any }
