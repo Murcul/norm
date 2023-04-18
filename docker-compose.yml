@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+  db:
+    image: aa8y/postgres-dataset:world
+    environment:
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_USER=postgres
+    command: ["postgres", "-c", "log_statement=all"]
+    ports:
+      - 5432:5432
