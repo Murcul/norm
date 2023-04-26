@@ -1,0 +1,16 @@
+name: Close Stale Issues and PRs
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v8
+        with:
+          stale-pr-message: 'This PR has been inactive for 3 days. It will be closed 2 days from now.'
+          days-before-stale: 3
+          days-before-close: 2
+          close-pr-message: 'This PR has been closed due to inactivity.'
+          exempt-pr-labels: release
