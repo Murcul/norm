@@ -24,9 +24,7 @@ const uriToDBConfig = (uri: string) => {
 export const runTypeGenerator = async () => {
   const args = parse(Deno.args);
 
-  const { default: normConfig } = await import(normConfigFile, {
-    assert: { type: 'json' },
-  });
+  const normConfig = JSON.parse(await Deno.readTextFile(normConfigFile));
 
   const parsedConfig = normConfigSchema.parse(normConfig, {});
 
