@@ -6,7 +6,7 @@ export { z } from 'npm:zod';
 export { default as merge } from 'https://deno.land/x/lodash@4.17.15-es/merge.js';
 export { default as lodashDifference } from 'https://deno.land/x/lodash@4.17.15-es/difference.js';
 export { parse } from 'https://deno.land/std@0.181.0/flags/mod.ts';
-export * as connectionString from 'npm:pg-connection-string@2.5.0';
+export { default as connectionString } from 'npm:pg-connection-string@2.5.0';
 export {
   Client as PGClient,
   Transaction as PGTransaction,
