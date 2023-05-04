@@ -60,7 +60,7 @@ describe('getEntities', () => {
 
       assertSpyCall(querySpy, 0, {
         args: [
-          'select ("id", "name", "countrycode") from "public"."city" where "id" in ($1);',
+          'select ("id", "name", "countrycode") from "public"."city" where "id" IN ($1);',
           [1],
         ],
         returned: Promise.resolve({ rows: [] }),
@@ -85,11 +85,158 @@ describe('getEntities', () => {
 
       assertSpyCall(querySpy, 0, {
         args: [
-          'select ("id", "name", "countrycode") from "public"."city" where "name" in ($1) OR "countrycode" in ($2);',
+          'select ("id", "name", "countrycode") from "public"."city" where "name" IN ($1) OR "countrycode" IN ($2);',
           ['name', 'countrycode'],
         ],
         returned: Promise.resolve({ rows: [] }),
       });
+    },
+  );
+
+  it(
+    'should return select statement when using _or',
+    async () => {
+      const db = getDB();
+
+      const querySpy = spy(db, 'query');
+
+      const norm = new Norm<DbSchema>(db);
+
+      await norm.getEntities('public', 'city', [
+        'id',
+        'name',
+        'countrycode',
+      ], {
+        _or: [{ name: 'name_one', countrycode: 'countrycode_one' }, {
+          name: 'name_two',
+          countrycode: 'countrycode_two',
+        }],
+      });
+
+      const expectedSql =
+        'select ("id", "name", "countrycode") from "public"."city" where ("name" = $1 AND "countrycode" = $2) OR ("name" = $3 AND "countrycode" = $4);';
+      const expectedValues = [
+        'name_one',
+        'countrycode_one',
+        'name_two',
+        'countrycode_two',
+      ];
+
+      assertEquals(expectedSql, querySpy.calls[0].args[0]);
+      assertEquals(expectedValues, querySpy.calls[0].args[1]);
+    },
+  );
+
+  it(
+    'should return select statement when using _and',
+    async () => {
+      const db = getDB();
+
+      const querySpy = spy(db, 'query');
+
+      const norm = new Norm<DbSchema>(db);
+
+      await norm.getEntities('public', 'city', [
+        'id',
+        'name',
+        'countrycode',
+      ], {
+        _and: [{ name: 'name_one', countrycode: 'countrycode_one' }, {
+          name: 'name_two',
+          countrycode: 'countrycode_two',
+        }],
+      });
+
+      const expectedSql =
+        'select ("id", "name", "countrycode") from "public"."city" where ("name" = $1 OR "countrycode" = $2) AND ("name" = $3 OR "countrycode" = $4);';
+      const expectedValues = [
+        'name_one',
+        'countrycode_one',
+        'name_two',
+        'countrycode_two',
+      ];
+
+      assertEquals(expectedSql, querySpy.calls[0].args[0]);
+      assertEquals(expectedValues, querySpy.calls[0].args[1]);
+    },
+  );
+
+  it(
+    'should return select statement when using _and and _or',
+    async () => {
+      const db = getDB();
+
+      const querySpy = spy(db, 'query');
+
+      const norm = new Norm<DbSchema>(db);
+
+      await norm.getEntities('public', 'city', [
+        'id',
+        'name',
+        'countrycode',
+      ], {
+        _and: [{ name: 'name_one', countrycode: 'countrycode_one' }, {
+          name: 'name_two',
+          countrycode: 'countrycode_two',
+        }],
+        _or: [{ name: 'name_three', countrycode: 'countrycode_three' }, {
+          name: 'name_four',
+          countrycode: 'countrycode_four',
+        }],
+      });
+      const expectedSql =
+        'select ("id", "name", "countrycode") from "public"."city" where (("name" = $1 AND "countrycode" = $2) OR ("name" = $3 AND "countrycode" = $4)) AND (("name" = $5 OR "countrycode" = $6) AND ("name" = $7 OR "countrycode" = $8));';
+      const expectedValues = [
+        'name_three',
+        'countrycode_three',
+        'name_four',
+        'countrycode_four',
+        'name_one',
+        'countrycode_one',
+        'name_two',
+        'countrycode_two',
+      ];
+
+      assertEquals(expectedSql, querySpy.calls[0].args[0]);
+      assertEquals(expectedValues, querySpy.calls[0].args[1]);
+    },
+  );
+
+  it(
+    'should return select statement when using _and, _or and bare fields',
+    async () => {
+      const db = getDB();
+
+      const querySpy = spy(db, 'query');
+
+      const norm = new Norm<DbSchema>(db);
+
+      await norm.getEntities('public', 'city', [
+        'id',
+        'name',
+        'countrycode',
+      ], {
+        name: ['name'],
+        countrycode: ['countrycode'],
+        _or: { id: [1, 2], name: ['name_two', 'name_three'] },
+        _and: { name: ['name_four'], countrycode: ['countrycode_two'] },
+      });
+
+      const expectedSql =
+        'select ("id", "name", "countrycode") from "public"."city" where ("id" IN ($1, $2) OR "name" IN ($3, $4)) AND ("name" IN ($5) AND "countrycode" IN ($6)) AND ("name" IN ($7) OR "countrycode" IN ($8));';
+      const expectedValues = [
+        1,
+        2,
+        'name_two',
+        'name_three',
+        'name_four',
+        'countrycode_two',
+        'name',
+        'countrycode',
+      ];
+
+      assertEquals(expectedSql, querySpy.calls[0].args[0]);
+      assertEquals(expectedValues, querySpy.calls[0].args[1]);
     },
   );
 });
