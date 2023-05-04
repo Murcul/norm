@@ -29,9 +29,6 @@ export interface WhereClauseInput<
   [key: string]: TValue[] | any;
 }
 
-// type WhereClauseFieldsInput = WhereClauseInput;
-// | { [K in Exclude<string, keyof WhereClauseInput>]: SupportedTypes[] };
-
 export class ClauseBuilder<T extends string | number | symbol> {
   private fallbackConjunction: ConjunctionType;
   private preparedIndex: number;
