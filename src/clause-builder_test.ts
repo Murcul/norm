@@ -1,4 +1,4 @@
-import { assertEquals, describe, it } from './dev_deps.ts';
+import { assertEquals, assertThrows, describe, it } from './dev_deps.ts';
 
 import { ClauseBuilder, ClauseBuilderOptions } from './clause-builder.ts';
 
@@ -146,39 +146,20 @@ describe('ClauseBuilder', () => {
   );
 
   it(
-    'should use fallback conjunction if _or, _and and field value syntax is used',
+    'should throw error if _or, _and and field value syntax is used',
     () => {
-      const whereClause = new ClauseBuilder({
+      const clauseBuilder = new ClauseBuilder({
         _or: { fieldOne: ['value_one', 'value_two'], fieldTwo: [100, 50, 70] },
         _and: { fieldOne: ['value_three'], fieldTwo: [1] },
         fieldOne: ['value_one', 'value_two'],
         fieldTwo: [100, 50, 70],
-      }, builderOptions).buildWhereClause();
+      }, builderOptions);
 
-      assertEquals(whereClause.clause, [
-        '"fieldOne" IN ($1, $2) OR "fieldTwo" IN ($3, $4, $5)',
-        '"fieldOne" IN ($6) AND "fieldTwo" IN ($7)',
-        '"fieldOne" IN ($8, $9) AND "fieldTwo" IN ($10, $11, $12)',
-      ]);
-      assertEquals(
-        whereClause.clauseStr,
-        '("fieldOne" IN ($1, $2) OR "fieldTwo" IN ($3, $4, $5)) AND ("fieldOne" IN ($6) AND "fieldTwo" IN ($7)) AND ("fieldOne" IN ($8, $9) AND "fieldTwo" IN ($10, $11, $12))',
+      assertThrows(
+        () => clauseBuilder.buildWhereClause(),
+        Error,
+        'Can\'t use a combination of flat field filter and _and / _or!',
       );
-      assertEquals(whereClause.nextPreparedIndex, 13);
-      assertEquals(whereClause.values, [
-        'value_one',
-        'value_two',
-        100,
-        50,
-        70,
-        'value_three',
-        1,
-        'value_one',
-        'value_two',
-        100,
-        50,
-        70,
-      ]);
     },
   );
 });

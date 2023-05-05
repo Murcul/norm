@@ -1,6 +1,7 @@
 import {
   assertArrayIncludes,
   assertEquals,
+  assertRejects,
   assertSpyCall,
   describe,
   it,
@@ -203,40 +204,30 @@ describe('getEntities', () => {
   );
 
   it(
-    'should return select statement when using _and, _or and bare fields',
+    'should throw error when using _and, _or and bare fields',
     async () => {
       const db = getDB();
 
-      const querySpy = spy(db, 'query');
+      const _querySpy = spy(db, 'query');
 
       const norm = new Norm<DbSchema>(db);
 
-      await norm.getEntities('public', 'city', [
-        'id',
-        'name',
-        'countrycode',
-      ], {
-        name: ['name'],
-        countrycode: ['countrycode'],
-        _or: { id: [1, 2], name: ['name_two', 'name_three'] },
-        _and: { name: ['name_four'], countrycode: ['countrycode_two'] },
-      });
-
-      const expectedSql =
-        'select ("id", "name", "countrycode") from "public"."city" where ("id" IN ($1, $2) OR "name" IN ($3, $4)) AND ("name" IN ($5) AND "countrycode" IN ($6)) AND ("name" IN ($7) OR "countrycode" IN ($8));';
-      const expectedValues = [
-        1,
-        2,
-        'name_two',
-        'name_three',
-        'name_four',
-        'countrycode_two',
-        'name',
-        'countrycode',
-      ];
-
-      assertEquals(expectedSql, querySpy.calls[0].args[0]);
-      assertEquals(expectedValues, querySpy.calls[0].args[1]);
+      await assertRejects(
+        () => {
+          return norm.getEntities('public', 'city', [
+            'id',
+            'name',
+            'countrycode',
+          ], {
+            name: ['name'],
+            countrycode: ['countrycode'],
+            _or: { id: [1, 2], name: ['name_two', 'name_three'] },
+            _and: { name: ['name_four'], countrycode: ['countrycode_two'] },
+          });
+        },
+        Error,
+        'Can\'t use a combination of flat field filter and _and / _or!',
+      );
     },
   );
 });

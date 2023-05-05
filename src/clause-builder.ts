@@ -162,8 +162,19 @@ export class ClauseBuilder<T extends string | number | symbol> {
     this.whereClause.push(clause);
   }
 
+  private validateClauses() {
+    const { _and, _or, ...clauses } = this.clause;
+
+    if ((_and || _or) && (clauses && Object.keys(clauses).length)) {
+      throw new Error(
+        'Can\'t use a combination of flat field filter and _and / _or!',
+      );
+    }
+  }
+
   public buildWhereClause() {
     if (Object.keys(this.clause).length) {
+      this.validateClauses();
       this.buildOrClause();
       this.buildAndClause();
       this.buildClause();
