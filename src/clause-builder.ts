@@ -17,11 +17,6 @@ type ObjectClauseFields<Tkey extends string | number | symbol, TValue> =
 export interface ClauseBuilderOptions {
   preparedIndex: number;
 }
-// export interface WhereClauseInput<Tkey extends string | number | symbol, TValue> {
-//   _or?: WhereClauseInput<Tkey, TValue>[];
-//   _and?: WhereClauseInput<Tkey, TValue>[];
-//   [key: string]: TValue[] | any;
-// }
 
 export type WhereClauseInput<Tkey extends string | number | symbol, TValue> =
   & { [P in Tkey]?: TValue[] }
@@ -85,15 +80,12 @@ export class ClauseBuilder<T extends string | number | symbol> {
 
     const { _and, _or, ...fieldClauses } = firstClause;
 
-    const otherClause = otherClauses.length
-      ? this.buildClauses(otherClauses, conjunction, clauseQuery)
-      : '';
-    const _andClause = _and
-      ? this.buildClauses(_and, logicalOperatorMapping._and, clauseQuery)
-      : '';
-    const _orClause = _or
-      ? this.buildClauses(_or, logicalOperatorMapping._or, clauseQuery)
-      : '';
+    const otherClause = otherClauses.length &&
+      this.buildClauses(otherClauses, conjunction, clauseQuery);
+    const _andClause = _and &&
+      this.buildClauses(_and, logicalOperatorMapping._and, clauseQuery);
+    const _orClause = _or &&
+      this.buildClauses(_or, logicalOperatorMapping._or, clauseQuery);
 
     const fieldClause = Object.keys(fieldClauses).length
       ? this.buildObjectClause(fieldClauses, conjunction)
