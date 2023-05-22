@@ -1,165 +1,186 @@
-import { assertEquals, assertThrows, describe, it } from './dev_deps.ts';
+import { assertEquals, describe, it } from './dev_deps.ts';
 
 import { ClauseBuilder, ClauseBuilderOptions } from './clause-builder.ts';
 
 const builderOptions: ClauseBuilderOptions = {
-  fallbackConjunction: 'AND',
   preparedIndex: 1,
 };
 
 describe('ClauseBuilder', () => {
   it(
-    'should return where clause when using array variant of _or with multiple fields',
+    'should return where clause when using only _and',
     () => {
-      const whereClause = new ClauseBuilder({
-        _or: [{ fieldOne: 'value_one', fieldTwo: 10 }, {
-          fieldThree: 'value_two',
-          fieldFour: 20,
-        }],
-      }, builderOptions).buildWhereClause();
+      const filterClause = {
+        _and: [{ fieldOne: [1], fieldTwo: [2], fieldThree: [3] }],
+      };
 
-      assertEquals(whereClause.clause, [
-        '("fieldOne" = $1 AND "fieldTwo" = $2) OR ("fieldThree" = $3 AND "fieldFour" = $4)',
-      ]);
-      assertEquals(
-        whereClause.clauseStr,
-        '("fieldOne" = $1 AND "fieldTwo" = $2) OR ("fieldThree" = $3 AND "fieldFour" = $4)',
-      );
-      assertEquals(whereClause.nextPreparedIndex, 5);
-      assertEquals(whereClause.values, ['value_one', 10, 'value_two', 20]);
-    },
-  );
+      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+        .buildWhereClause();
 
-  it(
-    'should return where clause when using map variant of _or with multiple fields',
-    () => {
-      const whereClause = new ClauseBuilder({
-        _or: { fieldOne: ['value_one', 'value_two'], fieldTwo: [100, 50, 70] },
-      }, builderOptions).buildWhereClause();
+      const expectedClause =
+        '("fieldOne" IN ($1) AND "fieldTwo" IN ($2) AND "fieldThree" IN ($3))';
 
-      assertEquals(whereClause.clause, [
-        '"fieldOne" IN ($1, $2) OR "fieldTwo" IN ($3, $4, $5)',
-      ]);
-      assertEquals(
-        whereClause.clauseStr,
-        '"fieldOne" IN ($1, $2) OR "fieldTwo" IN ($3, $4, $5)',
-      );
-      assertEquals(whereClause.nextPreparedIndex, 6);
-      assertEquals(whereClause.values, ['value_one', 'value_two', 100, 50, 70]);
-    },
-  );
-
-  it(
-    'should return where clause when using array variant of _and with multiple fields',
-    () => {
-      const whereClause = new ClauseBuilder({
-        _and: [{ fieldOne: 'value_one', fieldTwo: 10 }, {
-          fieldThree: 'value_two',
-          fieldFour: 20,
-        }],
-      }, builderOptions).buildWhereClause();
-
-      assertEquals(whereClause.clause, [
-        '("fieldOne" = $1 OR "fieldTwo" = $2) AND ("fieldThree" = $3 OR "fieldFour" = $4)',
-      ]);
-      assertEquals(
-        whereClause.clauseStr,
-        '("fieldOne" = $1 OR "fieldTwo" = $2) AND ("fieldThree" = $3 OR "fieldFour" = $4)',
-      );
-      assertEquals(whereClause.nextPreparedIndex, 5);
-      assertEquals(whereClause.values, ['value_one', 10, 'value_two', 20]);
-    },
-  );
-
-  it(
-    'should return where clause when using map variant of _and with multiple fields',
-    () => {
-      const whereClause = new ClauseBuilder({
-        _and: { fieldOne: ['value_one', 'value_two'], fieldTwo: [100, 50, 70] },
-      }, builderOptions).buildWhereClause();
-
-      assertEquals(whereClause.clause, [
-        '"fieldOne" IN ($1, $2) AND "fieldTwo" IN ($3, $4, $5)',
-      ]);
-      assertEquals(
-        whereClause.clauseStr,
-        '"fieldOne" IN ($1, $2) AND "fieldTwo" IN ($3, $4, $5)',
-      );
-      assertEquals(whereClause.nextPreparedIndex, 6);
-      assertEquals(whereClause.values, ['value_one', 'value_two', 100, 50, 70]);
-    },
-  );
-
-  it(
-    'should return where clause with combination of _and and _or',
-    () => {
-      const whereClause = new ClauseBuilder({
-        _or: { fieldOne: ['value_one', 'value_two'], fieldTwo: [100, 50, 70] },
-        _and: { fieldOne: ['value_three'], fieldTwo: [1] },
-      }, builderOptions).buildWhereClause();
-
-      assertEquals(whereClause.clause, [
-        '"fieldOne" IN ($1, $2) OR "fieldTwo" IN ($3, $4, $5)',
-        '"fieldOne" IN ($6) AND "fieldTwo" IN ($7)',
-      ]);
-      assertEquals(
-        whereClause.clauseStr,
-        '("fieldOne" IN ($1, $2) OR "fieldTwo" IN ($3, $4, $5)) AND ("fieldOne" IN ($6) AND "fieldTwo" IN ($7))',
-      );
-      assertEquals(whereClause.nextPreparedIndex, 8);
+      assertEquals(whereClause.clause, expectedClause);
+      assertEquals(whereClause.nextPreparedIndex, 4);
       assertEquals(whereClause.values, [
-        'value_one',
-        'value_two',
-        100,
-        50,
-        70,
-        'value_three',
         1,
+        2,
+        3,
       ]);
     },
   );
 
   it(
-    'should use fallback conjunction if missing _or and _and',
+    'should return where clause when using only _and with nested filters',
     () => {
-      const whereClause = new ClauseBuilder({
-        fieldOne: ['value_one', 'value_two'],
-        fieldTwo: [100, 50, 70],
-      }, builderOptions).buildWhereClause();
+      const filterClause = {
+        _and: [{
+          fieldOne: [1],
+          fieldTwo: [2],
+          _or: [{
+            fieldThree: [3],
+            fieldFour: [4],
+            _and: [{ fieldFive: [5], fieldSix: [6] }],
+          }],
+        }],
+      };
 
-      assertEquals(whereClause.clause, [
-        '"fieldOne" IN ($1, $2) AND "fieldTwo" IN ($3, $4, $5)',
-      ]);
-      assertEquals(
-        whereClause.clauseStr,
-        '"fieldOne" IN ($1, $2) AND "fieldTwo" IN ($3, $4, $5)',
-      );
-      assertEquals(whereClause.nextPreparedIndex, 6);
+      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+        .buildWhereClause();
+
+      const expectedClause =
+        '(("fieldOne" IN ($5) AND "fieldTwo" IN ($6)) AND (("fieldThree" IN ($3) OR "fieldFour" IN ($4)) OR ("fieldFive" IN ($1) AND "fieldSix" IN ($2))))';
+
+      assertEquals(whereClause.clause, expectedClause);
+      assertEquals(whereClause.nextPreparedIndex, 7);
+      assertEquals(whereClause.values, [5, 6, 3, 4, 1, 2]);
+    },
+  );
+
+  it(
+    'should return where clause when using only _or',
+    () => {
+      const filterClause = {
+        _or: [{ fieldOne: [1], fieldTwo: [2], fieldThree: [3] }],
+      };
+
+      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+        .buildWhereClause();
+
+      const expectedClause =
+        '("fieldOne" IN ($1) OR "fieldTwo" IN ($2) OR "fieldThree" IN ($3))';
+
+      assertEquals(whereClause.clause, expectedClause);
+      assertEquals(whereClause.nextPreparedIndex, 4);
+      assertEquals(whereClause.values, [1, 2, 3]);
+    },
+  );
+
+  it(
+    'should return where clause when using only _or with nested filters',
+    () => {
+      const filterClause = {
+        _or: [{
+          fieldOne: [1],
+          fieldTwo: [2],
+          _and: [{
+            fieldThree: [3],
+            fieldFour: [4],
+            _or: [{ fieldFive: [5], fieldSix: [6] }],
+          }],
+        }],
+      };
+
+      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+        .buildWhereClause();
+
+      const expectedClause =
+        '(("fieldOne" IN ($5) OR "fieldTwo" IN ($6)) OR (("fieldThree" IN ($3) AND "fieldFour" IN ($4)) AND ("fieldFive" IN ($1) OR "fieldSix" IN ($2))))';
+
+      assertEquals(whereClause.clause, expectedClause);
+      assertEquals(whereClause.nextPreparedIndex, 7);
+      assertEquals(whereClause.values, [5, 6, 3, 4, 1, 2]);
+    },
+  );
+
+  it(
+    'should return where clause when using _and & _or',
+    () => {
+      const filterClause = {
+        _and: [{ fieldOne: [1], fieldTwo: [2] }],
+        _or: [{ fieldThree: [3], fieldFour: [4] }],
+      };
+
+      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+        .buildWhereClause();
+
+      const expectedClause =
+        '(("fieldThree" IN ($3) OR "fieldFour" IN ($4)) AND ("fieldOne" IN ($1) AND "fieldTwo" IN ($2)))';
+
+      assertEquals(whereClause.clause, expectedClause);
+      assertEquals(whereClause.nextPreparedIndex, 5);
+      assertEquals(whereClause.values, [1, 2, 3, 4]);
+    },
+  );
+
+  it(
+    'should return where clause when using only spreaded fields',
+    () => {
+      const filterClause = {
+        fieldOne: [1],
+        fieldTwo: [2],
+        fieldThree: [3],
+      };
+
+      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+        .buildWhereClause();
+
+      const expectedClause =
+        '("fieldOne" IN ($1) AND "fieldTwo" IN ($2) AND "fieldThree" IN ($3))';
+
+      assertEquals(whereClause.clause, expectedClause);
+      assertEquals(whereClause.nextPreparedIndex, 4);
       assertEquals(whereClause.values, [
-        'value_one',
-        'value_two',
-        100,
-        50,
-        70,
+        1,
+        2,
+        3,
       ]);
     },
   );
 
   it(
-    'should throw error if _or, _and and field value syntax is used',
+    'should return where clause when using combination for _and, _or and spreaded fields',
     () => {
-      const clauseBuilder = new ClauseBuilder({
-        _or: { fieldOne: ['value_one', 'value_two'], fieldTwo: [100, 50, 70] },
-        _and: { fieldOne: ['value_three'], fieldTwo: [1] },
-        fieldOne: ['value_one', 'value_two'],
-        fieldTwo: [100, 50, 70],
-      }, builderOptions);
+      const filterClause = {
+        _and: [{ fieldOne: [1], _or: [{ fieldTwo: [2], fieldThree: [3] }] }],
+        _or: [{
+          fieldFour: [4],
+          fieldFive: [5],
+          _and: [{ fieldSix: [6], fieldSeven: [7] }],
+        }],
+        fieldEight: [8],
+        fieldNine: [9],
+      };
 
-      assertThrows(
-        () => clauseBuilder.buildWhereClause(),
-        Error,
-        'Can\'t use a combination of flat field filter and _and / _or!',
-      );
+      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+        .buildWhereClause();
+
+      const expectedClause =
+        '((("fieldEight" IN ($8) AND "fieldNine" IN ($9)) AND (("fieldFour" IN ($6) OR "fieldFive" IN ($7)) OR ("fieldSix" IN ($4) AND "fieldSeven" IN ($5)))) AND (("fieldOne" IN ($3)) AND ("fieldTwo" IN ($1) OR "fieldThree" IN ($2))))';
+
+      assertEquals(whereClause.clause, expectedClause);
+      assertEquals(whereClause.nextPreparedIndex, 10);
+      assertEquals(whereClause.values, [
+        2,
+        3,
+        1,
+        6,
+        7,
+        4,
+        5,
+        8,
+        9,
+      ]);
     },
   );
 });

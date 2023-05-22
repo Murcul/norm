@@ -56,11 +56,12 @@ export class Norm<DbSchema extends SchemaBase> {
         DbSchema[S][T][keyof DbSchema[S][T]]
       >,
   ): Promise<Array<Pick<DbSchema[S][T], SC[number]>>> => {
-    const { clauseStr: whereClause, values: selectOnValues } =
-      new ClauseBuilder(selectOn, {
+    const { clause: whereClause, values: selectOnValues } = new ClauseBuilder(
+      selectOn,
+      {
         preparedIndex: 1,
-        fallbackConjunction: 'OR',
-      }).buildWhereClause();
+      },
+    ).buildWhereClause();
 
     const preparedQuery = `select (${
       quoteAndJoin(

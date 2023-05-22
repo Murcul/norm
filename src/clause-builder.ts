@@ -1,80 +1,49 @@
 import { SupportedTypes } from './types.ts';
 
 type PartialRecord<K extends keyof any, T> = {
-  [P in K]?: T;
+  [P in K]?: T[];
 };
 
 type ConjunctionType = 'OR' | 'AND';
-type ArrayClauseFields<Tkey extends string | number | symbol, TValue> = Array<
-  PartialRecord<Tkey, TValue>
->;
-type ObjectClauseFields<Tkey extends string | number | symbol, TValue> =
-  PartialRecord<Tkey, Array<TValue>>;
 
-export type ClauseFieldsGeneric<Tkey extends string | number | symbol, TValue> =
-  | ObjectClauseFields<Tkey, TValue>
-  | ArrayClauseFields<Tkey, TValue>;
+const logicalOperatorMapping: Record<'_and' | '_or', ConjunctionType> = {
+  _and: 'AND',
+  _or: 'OR',
+};
+
+type ObjectClauseFields<Tkey extends string | number | symbol, TValue> =
+  PartialRecord<Tkey, TValue>;
 
 export interface ClauseBuilderOptions {
   preparedIndex: number;
-  fallbackConjunction: ConjunctionType;
 }
+// export interface WhereClauseInput<Tkey extends string | number | symbol, TValue> {
+//   _or?: WhereClauseInput<Tkey, TValue>[];
+//   _and?: WhereClauseInput<Tkey, TValue>[];
+//   [key: string]: TValue[] | any;
+// }
 
-export interface WhereClauseInput<
-  TKey extends string | number | symbol,
-  TValue,
-> {
-  _or?: ClauseFieldsGeneric<TKey, TValue>;
-  _and?: ClauseFieldsGeneric<TKey, TValue>;
-  [key: string]: TValue[] | any;
-}
+export type WhereClauseInput<Tkey extends string | number | symbol, TValue> =
+  & { [P in Tkey]?: TValue[] }
+  & {
+    _or?: WhereClauseInput<Tkey, TValue>[];
+    _and?: WhereClauseInput<Tkey, TValue>[];
+  };
 
 export class ClauseBuilder<T extends string | number | symbol> {
-  private fallbackConjunction: ConjunctionType;
   private preparedIndex: number;
   private preparedValues: Array<SupportedTypes>;
-  private whereClause: string[];
 
   constructor(
     private clause: WhereClauseInput<T, SupportedTypes>,
-    { preparedIndex, fallbackConjunction }: ClauseBuilderOptions,
+    { preparedIndex }: ClauseBuilderOptions,
   ) {
     this.preparedValues = [];
-    this.whereClause = [];
     this.preparedIndex = preparedIndex;
-    this.fallbackConjunction = fallbackConjunction;
   }
 
   private get nextPreparedIndex() {
     return this.preparedIndex + this.preparedValues.length;
-  }
-
-  private get whereClauseStr() {
-    if (!this.whereClause.length) {
-      return '';
-    }
-
-    if (this.whereClause.length === 1) {
-      return this.whereClause[0];
-    }
-
-    return this.whereClause.map((clause) => `(${clause})`).join(' AND ');
-  }
-
-  private buildArrayClause(
-    clauseFields: ArrayClauseFields<string, SupportedTypes>,
-    conjunction: ConjunctionType,
-    innerConjunction: ConjunctionType,
-  ) {
-    return clauseFields.map((field) => {
-      return Object.entries(field).map(([key, value]) => {
-        const sql = `"${key}" = $${this.nextPreparedIndex}`;
-
-        this.preparedValues.push(value);
-
-        return sql;
-      }).join(` ${innerConjunction} `);
-    }).map((clause) => `(${clause})`).join(` ${conjunction} `);
   }
 
   private buildObjectClause(
@@ -91,98 +60,70 @@ export class ClauseBuilder<T extends string | number | symbol> {
       return `"${key}" IN (${fields})`;
     });
 
-    return `${clause.join(` ${conjunction} `)}`;
+    return `(${clause.join(` ${conjunction} `)})`;
   }
 
-  private buildArrayOrClause(
-    orClause: ArrayClauseFields<string, SupportedTypes>,
+  private appendConjunction(
+    baseClause: string,
+    conjunction: ConjunctionType,
+    clause: string,
   ) {
-    return this.buildArrayClause(orClause, 'OR', 'AND');
+    if (!baseClause) return `${clause}`;
+
+    return `(${baseClause} ${conjunction} ${clause})`;
   }
 
-  private buildObjectOrClause(
-    orClause: ObjectClauseFields<string, SupportedTypes>,
-  ) {
-    return this.buildObjectClause(orClause, 'OR');
-  }
+  private buildClauses(
+    clauses: WhereClauseInput<T, SupportedTypes>[],
+    conjunction: ConjunctionType,
+    clauseQuery = '',
+  ): any {
+    if (Array.isArray(clauses) && clauses.length === 0) {
+      return clauseQuery;
+    }
+    const [firstClause, ...otherClauses] = clauses;
 
-  private buildOrClause() {
-    const { _or } = this.clause;
+    const { _and, _or, ...fieldClauses } = firstClause;
 
-    if (!_or) {
-      return;
+    const otherClause = otherClauses.length
+      ? this.buildClauses(otherClauses, conjunction, clauseQuery)
+      : '';
+    const _andClause = _and
+      ? this.buildClauses(_and, logicalOperatorMapping._and, clauseQuery)
+      : '';
+    const _orClause = _or
+      ? this.buildClauses(_or, logicalOperatorMapping._or, clauseQuery)
+      : '';
+
+    const fieldClause = Object.keys(fieldClauses).length
+      ? this.buildObjectClause(fieldClauses, conjunction)
+      : '';
+
+    let clause = fieldClause;
+
+    if (_orClause) {
+      clause = this.appendConjunction(clause, conjunction, _orClause);
     }
 
-    const clause = Array.isArray(_or)
-      ? this.buildArrayOrClause(_or)
-      : this.buildObjectOrClause(_or);
+    if (_andClause) {
+      clause = this.appendConjunction(clause, conjunction, _andClause);
+    }
 
-    this.whereClause.push(clause);
+    if (otherClause) {
+      clause = this.appendConjunction(clause, conjunction, otherClause);
+    }
 
     return clause;
-  }
-
-  private buildArrayAndClause(
-    orClause: ArrayClauseFields<string, SupportedTypes>,
-  ) {
-    return this.buildArrayClause(orClause, 'AND', 'OR');
-  }
-
-  private buildObjectAndClause(
-    orClause: ObjectClauseFields<string, SupportedTypes>,
-  ) {
-    return this.buildObjectClause(orClause, 'AND');
-  }
-
-  private buildAndClause() {
-    const { _and } = this.clause;
-
-    if (!_and) {
-      return;
-    }
-
-    const clause = Array.isArray(_and)
-      ? this.buildArrayAndClause(_and)
-      : this.buildObjectAndClause(_and);
-
-    this.whereClause.push(clause);
-
-    return clause;
-  }
-
-  private buildClause() {
-    const { _and, _or, ...clauses } = this.clause;
-
-    if (!clauses || !Object.keys(clauses).length) {
-      return;
-    }
-
-    const clause = this.buildObjectClause(clauses, this.fallbackConjunction);
-
-    this.whereClause.push(clause);
-  }
-
-  private validateClauses() {
-    const { _and, _or, ...clauses } = this.clause;
-
-    if ((_and || _or) && (clauses && Object.keys(clauses).length)) {
-      throw new Error(
-        'Can\'t use a combination of flat field filter and _and / _or!',
-      );
-    }
   }
 
   public buildWhereClause() {
-    if (Object.keys(this.clause).length) {
-      this.validateClauses();
-      this.buildOrClause();
-      this.buildAndClause();
-      this.buildClause();
-    }
+    const whereClause = this.buildClauses(
+      [this.clause],
+      logicalOperatorMapping._and,
+    );
 
     return {
-      clause: this.whereClause,
-      clauseStr: this.whereClauseStr,
+      clause: whereClause,
       values: this.preparedValues,
       nextPreparedIndex: this.nextPreparedIndex,
     };
