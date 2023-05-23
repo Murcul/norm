@@ -8,6 +8,7 @@ import {
 } from './types.ts';
 import { merge } from './deps.ts';
 import { SQLBuilder } from './sql-builder.ts';
+import { ClauseBuilder, WhereClauseInput } from './clause-builder.ts';
 export class Norm<DbSchema extends SchemaBase> {
   constructor(private dbClient: DBClient) {
   }
@@ -46,32 +47,24 @@ export class Norm<DbSchema extends SchemaBase> {
     schema: S,
     tableName: T,
     selectColumns: SC,
-    selectOn: {
-      [key in keyof DbSchema[S][T]]?: Array<DbSchema[S][T][key]>;
-    },
+    selectOn:
+      & {
+        [key in keyof DbSchema[S][T]]?: Array<DbSchema[S][T][key]>;
+      }
+      & WhereClauseInput<
+        keyof DbSchema[S][T],
+        DbSchema[S][T][keyof DbSchema[S][T]]
+      >,
   ): Promise<Array<Pick<DbSchema[S][T], SC[number]>>> => {
-    const selectOnColumns = Object.keys(selectOn) as Array<
-      keyof typeof selectOn
-    >;
-    const selectOnValues = Object.values(selectOn).flat();
+    const { clause: whereClause, values: selectOnValues } = new ClauseBuilder(
+      selectOn,
+    ).buildWhereClause();
 
-    const [_idx, whereClause] = selectOnColumns.reduce<[number, string]>(
-      ([previousIndex, query], column, curentIdx) => {
-        return [
-          previousIndex + (selectOn[column]?.length ?? 0),
-          `${query}${curentIdx > 0 ? ' OR ' : ''}"${String(column)}" in (${
-            selectOn[column]?.map((_, idx) => `$${idx + previousIndex}`)
-          })`,
-        ];
-      },
-      [1, ''],
-    );
-
-    const preparedQuery = `select (${
+    const preparedQuery = `select ${
       quoteAndJoin(
         selectColumns,
       )
-    }) from "${String(schema)}"."${String(tableName)}" where ${
+    } from "${String(schema)}"."${String(tableName)}" where ${
       whereClause || true
     };`;
 
