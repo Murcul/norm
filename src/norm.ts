@@ -58,9 +58,6 @@ export class Norm<DbSchema extends SchemaBase> {
   ): Promise<Array<Pick<DbSchema[S][T], SC[number]>>> => {
     const { clause: whereClause, values: selectOnValues } = new ClauseBuilder(
       selectOn,
-      {
-        preparedIndex: 1,
-      },
     ).buildWhereClause();
 
     const preparedQuery = `select (${

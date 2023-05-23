@@ -14,10 +14,6 @@ const logicalOperatorMapping: Record<'_and' | '_or', ConjunctionType> = {
 type ObjectClauseFields<Tkey extends string | number | symbol, TValue> =
   PartialRecord<Tkey, TValue>;
 
-export interface ClauseBuilderOptions {
-  preparedIndex: number;
-}
-
 export type WhereClauseInput<Tkey extends string | number | symbol, TValue> =
   & { [P in Tkey]?: TValue[] }
   & {
@@ -31,10 +27,9 @@ export class ClauseBuilder<T extends string | number | symbol> {
 
   constructor(
     private clause: WhereClauseInput<T, SupportedTypes>,
-    { preparedIndex }: ClauseBuilderOptions,
   ) {
     this.preparedValues = [];
-    this.preparedIndex = preparedIndex;
+    this.preparedIndex = 1;
   }
 
   private get nextPreparedIndex() {

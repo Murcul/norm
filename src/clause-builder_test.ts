@@ -1,10 +1,6 @@
 import { assertEquals, describe, it } from './dev_deps.ts';
 
-import { ClauseBuilder, ClauseBuilderOptions } from './clause-builder.ts';
-
-const builderOptions: ClauseBuilderOptions = {
-  preparedIndex: 1,
-};
+import { ClauseBuilder } from './clause-builder.ts';
 
 describe('ClauseBuilder', () => {
   it(
@@ -14,7 +10,7 @@ describe('ClauseBuilder', () => {
         _and: [{ fieldOne: [1], fieldTwo: [2], fieldThree: [3] }],
       };
 
-      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+      const whereClause = new ClauseBuilder(filterClause)
         .buildWhereClause();
 
       const expectedClause =
@@ -45,7 +41,7 @@ describe('ClauseBuilder', () => {
         }],
       };
 
-      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+      const whereClause = new ClauseBuilder(filterClause)
         .buildWhereClause();
 
       const expectedClause =
@@ -64,7 +60,7 @@ describe('ClauseBuilder', () => {
         _or: [{ fieldOne: [1], fieldTwo: [2], fieldThree: [3] }],
       };
 
-      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+      const whereClause = new ClauseBuilder(filterClause)
         .buildWhereClause();
 
       const expectedClause =
@@ -91,7 +87,7 @@ describe('ClauseBuilder', () => {
         }],
       };
 
-      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+      const whereClause = new ClauseBuilder(filterClause)
         .buildWhereClause();
 
       const expectedClause =
@@ -111,7 +107,7 @@ describe('ClauseBuilder', () => {
         _or: [{ fieldThree: [3], fieldFour: [4] }],
       };
 
-      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+      const whereClause = new ClauseBuilder(filterClause)
         .buildWhereClause();
 
       const expectedClause =
@@ -132,7 +128,7 @@ describe('ClauseBuilder', () => {
         fieldThree: [3],
       };
 
-      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+      const whereClause = new ClauseBuilder(filterClause)
         .buildWhereClause();
 
       const expectedClause =
@@ -162,7 +158,7 @@ describe('ClauseBuilder', () => {
         fieldNine: [9],
       };
 
-      const whereClause = new ClauseBuilder(filterClause, builderOptions)
+      const whereClause = new ClauseBuilder(filterClause)
         .buildWhereClause();
 
       const expectedClause =
