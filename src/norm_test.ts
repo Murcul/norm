@@ -35,7 +35,7 @@ describe('getEntities', () => {
 
       assertSpyCall(querySpy, 0, {
         args: [
-          'select ("id", "name", "countrycode") from "public"."city" where true;',
+          'select "id", "name", "countrycode" from "public"."city" where true;',
           [],
         ],
         returned: Promise.resolve({ rows: [] }),
@@ -59,7 +59,7 @@ describe('getEntities', () => {
       ], { id: [1] });
 
       const expectedSql =
-        'select ("id", "name", "countrycode") from "public"."city" where ("id" IN ($1));';
+        'select "id", "name", "countrycode" from "public"."city" where ("id" IN ($1));';
       const expectedValues = [1];
 
       assertEquals(expectedSql, querySpy.calls[0].args[0]);
@@ -83,7 +83,7 @@ describe('getEntities', () => {
       ], { name: ['name'], countrycode: ['countrycode'] });
 
       const expectedSql =
-        'select ("id", "name", "countrycode") from "public"."city" where ("name" IN ($1) AND "countrycode" IN ($2));';
+        'select "id", "name", "countrycode" from "public"."city" where ("name" IN ($1) AND "countrycode" IN ($2));';
       const expectedValues = ['name', 'countrycode'];
 
       assertEquals(expectedSql, querySpy.calls[0].args[0]);
@@ -115,7 +115,7 @@ describe('getEntities', () => {
       });
 
       const expectedSql =
-        'select ("id", "name", "countrycode") from "public"."city" where (("name" IN ($3) OR "countrycode" IN ($4)) OR ("name" IN ($1) OR "countrycode" IN ($2)));';
+        'select "id", "name", "countrycode" from "public"."city" where (("name" IN ($3) OR "countrycode" IN ($4)) OR ("name" IN ($1) OR "countrycode" IN ($2)));';
       const expectedValues = [
         'name_one',
         'countrycode_one',
@@ -156,7 +156,7 @@ describe('getEntities', () => {
       });
 
       const expectedSql =
-        'select ("id", "name", "countrycode", "district", "population") from "public"."city" where (("district" IN ($3) AND "countrycode" IN ($4)) OR ("district" IN ($1) AND "name" IN ($2)));';
+        'select "id", "name", "countrycode", "district", "population" from "public"."city" where (("district" IN ($3) AND "countrycode" IN ($4)) OR ("district" IN ($1) AND "name" IN ($2)));';
       const expectedValues = [
         'district_two',
         'name_two',
@@ -188,7 +188,7 @@ describe('getEntities', () => {
       });
 
       const expectedSql =
-        'select ("id", "name", "countrycode") from "public"."city" where (("population" IN ($3) OR "district" IN ($4)) AND ("name" IN ($1) AND "countrycode" IN ($2)));';
+        'select "id", "name", "countrycode" from "public"."city" where (("population" IN ($3) OR "district" IN ($4)) AND ("name" IN ($1) AND "countrycode" IN ($2)));';
       const expectedValues = [
         'name_three',
         'countrycode_three',
@@ -222,7 +222,7 @@ describe('getEntities', () => {
       });
 
       const expectedSql =
-        'select ("id", "name", "countrycode") from "public"."city" where ((("name" IN ($7) AND "countrycode" IN ($8)) AND ("id" IN ($3, $4) OR "name" IN ($5, $6))) AND ("name" IN ($1) AND "countrycode" IN ($2)));';
+        'select "id", "name", "countrycode" from "public"."city" where ((("name" IN ($7) AND "countrycode" IN ($8)) AND ("id" IN ($3, $4) OR "name" IN ($5, $6))) AND ("name" IN ($1) AND "countrycode" IN ($2)));';
       const expectedValues = [
         'name_four',
         'countrycode_two',

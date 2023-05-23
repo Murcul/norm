@@ -60,11 +60,11 @@ export class Norm<DbSchema extends SchemaBase> {
       selectOn,
     ).buildWhereClause();
 
-    const preparedQuery = `select (${
+    const preparedQuery = `select ${
       quoteAndJoin(
         selectColumns,
       )
-    }) from "${String(schema)}"."${String(tableName)}" where ${
+    } from "${String(schema)}"."${String(tableName)}" where ${
       whereClause || true
     };`;
 
