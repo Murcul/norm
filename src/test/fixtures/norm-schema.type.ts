@@ -1,5 +1,4 @@
-
-  export type DbSchema = {
+export type DbSchema = {
     "public": {
       "city": {
       id: number;
@@ -31,4 +30,3 @@ percentage: number;
     }
     }
   };
-  

@@ -36,17 +36,42 @@ export class TypeGenerator {
     );
   }
 
-  buildColumnType(column: pgStructure.Column): IColumnType {
-    const columnType = (column.type.internalName ??
+  getEnumTypeName(enumType: pgStructure.Type) {
+    return enumType.fullName.split('.').join('_');
+  }
+
+  buildColumnTypeMapping(column: pgStructure.Column) {
+    const columnTypeName = (column.type.internalName ??
       column.type.name) as keyof typeof typeMapping;
+
     const defaultType = {
       type: '"This type is missing in the generator mapping, plz fix."',
       validator: 'z.any()',
     };
+
+    if (typeMapping[columnTypeName]) {
+      return typeMapping[columnTypeName];
+    }
+
+    switch (column.type.category) {
+      case 'E':
+        return {
+          type: this.getEnumTypeName(column.type),
+          validator: 'z.any()',
+        };
+
+      default:
+        return defaultType;
+    }
+  }
+
+  buildColumnType(column: pgStructure.Column): IColumnType {
+    const columnType = this.buildColumnTypeMapping(column);
+
     return {
       nullable: !column.notNull,
       hasDefaultValue: column.default != null,
-      type: typeMapping[columnType] ?? defaultType,
+      type: columnType,
     };
   }
 
@@ -111,8 +136,32 @@ export class TypeGenerator {
     });
   }
 
+  private buildEnumType(enumType: pgStructure.Type) {
+    const types = (enumType as any).values.map((t: string) => `'${t}'`).join(
+      ' | ',
+    );
+
+    return { name: this.getEnumTypeName(enumType), type: types };
+  }
+
+  private buildEnumTypes(db: pgStructure.Db) {
+    const enumTypes = [];
+    for (const t of db.types) {
+      if (t.category === 'E') {
+        enumTypes.push(this.buildEnumType(t));
+      }
+    }
+
+    return enumTypes;
+  }
+
   private generateType() {
     const dbTypings = this.buildDBType(this.db!);
+    const enumTypes = this.buildEnumTypes(this.db!);
+
+    const enumTypings = enumTypes.map((t) =>
+      `export type ${t.name} = ${t.type}`
+    );
 
     const dbSchema = Object.entries(dbTypings).map(([schema, tables]) => {
       return `"${schema}": {
@@ -121,12 +170,14 @@ export class TypeGenerator {
     });
 
     const typing = `
+${enumTypings.join('\n')}
+
   export type DbSchema = {
     ${dbSchema}
   };
   `;
 
-    return typing;
+    return typing.trim();
   }
 
   async generate(outputDir: string) {
