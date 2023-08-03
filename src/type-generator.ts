@@ -40,7 +40,7 @@ export class TypeGenerator {
     return enumType.fullName.split('.').join('_');
   }
 
-  buildColumnTypeMapping(column: pgStructure.Column) {
+  getMappedColumnType(column: pgStructure.Column) {
     const columnTypeName = (column.type.internalName ??
       column.type.name) as keyof typeof typeMapping;
 
@@ -66,7 +66,7 @@ export class TypeGenerator {
   }
 
   buildColumnType(column: pgStructure.Column): IColumnType {
-    const columnType = this.buildColumnTypeMapping(column);
+    const columnType = this.getMappedColumnType(column);
 
     return {
       nullable: !column.notNull,
@@ -137,9 +137,7 @@ export class TypeGenerator {
   }
 
   private buildEnumType(enumType: pgStructure.Type) {
-    const types = (enumType as any).values.map((t: string) => `'${t}'`).join(
-      ' | ',
-    );
+    const types = (enumType as any).values.map((t: string) => `'${t}'`);
 
     return { name: this.getEnumTypeName(enumType), type: types };
   }
@@ -155,13 +153,18 @@ export class TypeGenerator {
     return enumTypes;
   }
 
-  private generateType() {
-    const dbTypings = this.buildDBType(this.db!);
+  private getEnumTSTyping() {
     const enumTypes = this.buildEnumTypes(this.db!);
 
-    const enumTypings = enumTypes.map((t) =>
-      `export type ${t.name} = ${t.type}`
+    return enumTypes.map((t) =>
+      `export type ${t.name} = ${t.type.join(' | ')}`
     );
+  }
+
+  private generateType() {
+    const dbTypings = this.buildDBType(this.db!);
+
+    const enumTypings = this.getEnumTSTyping();
 
     const dbSchema = Object.entries(dbTypings).map(([schema, tables]) => {
       return `"${schema}": {
