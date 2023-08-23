@@ -3,6 +3,7 @@ import { path, pgStructure, typeMapping } from './deps.ts';
 interface IColumnType {
   nullable: boolean;
   hasDefaultValue: boolean;
+  isArray: boolean;
   type: {
     type: string;
     validator: string;
@@ -72,6 +73,7 @@ export class TypeGenerator {
       nullable: !column.notNull,
       hasDefaultValue: column.default != null,
       type: columnType,
+      isArray: column.arrayDimension === 1,
     };
   }
 
@@ -118,6 +120,10 @@ export class TypeGenerator {
 
       if (isColumnOptional) {
         typedColumnName = `${typedColumnName}?`;
+      }
+
+      if (info.isArray) {
+        columnType = `${columnType}[]`;
       }
 
       if (info.nullable) {
