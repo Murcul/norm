@@ -89,6 +89,7 @@ export class Norm<DbSchema extends SchemaBase> {
     T extends keyof DbSchema[S],
     UC extends NonEmptyArray<keyof DbSchema[S][T]>,
     WC extends NonEmptyArray<keyof DbSchema[S][T]>,
+    RT extends Array<keyof DbSchema[S][T]>,
   >(
     schema: S,
     tableName: T,
@@ -104,6 +105,7 @@ export class Norm<DbSchema extends SchemaBase> {
       & {
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       },
+    returningColumns: RT,
   ): Promise<Pick<DbSchema[S][T], UC[number] | WC[number]> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -136,7 +138,11 @@ export class Norm<DbSchema extends SchemaBase> {
         <T>(column: T | null): column is T => column !== null,
       );
 
-    const columnsToReturn = [...columnsToUpdate, ...whereColumns];
+    const columnsToReturn = [
+      ...columnsToUpdate,
+      ...whereColumns,
+      ...returningColumns,
+    ];
 
     const valuesToUpdate = filteredColumnsToUpdate.map(
       (column) => nonUndefinedValues[column],
@@ -146,9 +152,7 @@ export class Norm<DbSchema extends SchemaBase> {
       nonUndefinedValues[column]
     );
 
-    const preparedQuery = `update "${String(schema)}"."${
-      String(tableName)
-    }" set 
+    const preparedQuery = `update "${String(schema)}"."${String(tableName)}" set
  ${
       filteredColumnsToUpdate
         .map((column, idx) => `"${String(column)}" = $${idx + 1}`)
@@ -195,6 +199,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
     T extends keyof DbSchema[S],
     UC extends NonEmptyArray<keyof DbSchema[S][T]>,
     WC extends NonEmptyArray<keyof DbSchema[S][T]>,
+    RT extends Array<keyof DbSchema[S][T]>,
   >(
     schema: S,
     tableName: T,
@@ -211,6 +216,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       }
     >,
+    returningColumns: RT,
   ): Promise<Array<Pick<DbSchema[S][T], UC[number] | WC[number]>> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -227,8 +233,14 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       !whereColumns.includes(column)
     );
 
-    const columnsToReturn = [...columnsToUpdate, ...whereColumns];
+    const columnsToReturn = [
+      ...columnsToUpdate,
+      ...whereColumns,
+      ...returningColumns,
+    ];
     const combinedColumns = [...filteredColumnsToUpdate, ...whereColumns];
+
+    const uniqueColumnsToReturn = [...new Set(columnsToReturn)];
 
     const valuesToInsert = nonUndefinedValues.reduce<
       { [key: string]: SupportedTypes[] }
@@ -279,14 +291,17 @@ returning ${quoteAndJoin(columnsToReturn)};`;
 
     const preparedQuery = `
     update "${String(schema)}"."${String(tableName)}" as update_table
-    set 
+    set
       ${filteredColumnsDataTableList.join(', ')}
     from (
       select *
       from unnest(${stmts.map((stmt) => `array[${stmt.join(', ')}]`)})
     ) as data_table (${columnsList.join(', ')})
     where ${whereClause.join(' and ')}
-    returning ${quoteAndJoin(columnsToReturn, 'update_table')};`;
+    returning ${
+      uniqueColumnsToReturn.map((column) => `update_table.${String(column)}`)
+        .join(', ')
+    };`;
 
     const result = await this.dbClient.query(preparedQuery, preparedValues);
 
@@ -310,6 +325,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
     T extends keyof DbSchema[S],
     RC extends NonEmptyArray<keyof DbSchema[S][T]>,
     MC extends Array<Exclude<keyof DbSchema[S][T], RC[number]>>,
+    RT extends Array<keyof DbSchema[S][T]>,
   >(
     schema: S,
     tableName: T,
@@ -323,6 +339,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       & {
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       },
+    returningColumns: RT,
   ): Promise<Pick<DbSchema[S][T], RC[number] | MC[number]> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -358,7 +375,11 @@ returning ${quoteAndJoin(columnsToReturn)};`;
         ),
     ];
 
-    const columnsToReturn = [...requiredColumns, ...maybeColumns];
+    const columnsToReturn = [
+      ...requiredColumns,
+      ...maybeColumns,
+      ...returningColumns,
+    ];
 
     const valuesToInsert = columnsToInsert.map(
       (column) => nonUndefinedValues[column],
@@ -383,7 +404,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       quoteAndJoin(
         columnsToInsert,
       )
-    }) 
+    })
     values (${columnsToInsert.map((_column, idx) => `$${idx + 1}`)})
     ${onConflictStatement}
     returning ${quoteAndJoin(columnsToReturn)};`;
@@ -413,6 +434,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
     T extends keyof DbSchema[S],
     RC extends NonEmptyArray<keyof DbSchema[S][T]>,
     MC extends Array<Exclude<keyof DbSchema[S][T], RC[number]>>,
+    RT extends Array<keyof DbSchema[S][T]>,
   >(
     schema: S,
     tableName: T,
@@ -427,6 +449,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       }
     >,
+    returningColumns: RT,
   ): Promise<Array<Pick<DbSchema[S][T], RC[number] | MC[number]>> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -443,7 +466,12 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       acceptedColumns.includes(col)
     );
 
-    const columnsToReturn = [...requiredColumns, ...maybeColumns];
+    const columnsToReturn = [
+      ...requiredColumns,
+      ...maybeColumns,
+      ...requiredColumns,
+      ...returningColumns,
+    ];
 
     const sqlBuilder = new SQLBuilder();
 
@@ -482,6 +510,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
     T extends keyof DbSchema[S],
     RC extends NonEmptyArray<keyof DbSchema[S][T]>,
     MC extends Array<Exclude<keyof DbSchema[S][T], RC[number]>>,
+    RT extends Array<keyof DbSchema[S][T]>,
   >(
     schema: S,
     tableName: T,
@@ -494,6 +523,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       }
     >,
+    returningColumns: RT,
   ): Promise<Array<Pick<DbSchema[S][T], RC[number] | MC[number]>> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -510,7 +540,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       acceptedColumns.includes(col)
     );
 
-    const columnsToReturn = requiredColumns;
+    const columnsToReturn = [...requiredColumns, ...returningColumns];
 
     const { stmts, values: valuesToInsert } = nonUndefinedValues.reduce<
       { stmts: Array<string[]>; values: any }
@@ -533,8 +563,8 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       quoteAndJoin(
         columnsToInsert,
       )
-    }) 
-   values 
+    })
+   values
      ${stmts.map((value) => `(${value.join(', ')})`).join(', ')}
    returning ${quoteAndJoin(columnsToReturn)};`;
 

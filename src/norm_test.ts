@@ -253,11 +253,14 @@ describe('updateEntity', () => {
       await norm.updateEntity('public', 'city', ['name'], ['id'], {
         name: 'title',
         id: 1,
-      });
+      }, ['name', 'id']);
 
       assertSpyCall(querySpy, 0, {
         args: [
-          'update "public"."city" set \n "name" = $1\nwhere "id" = $2\nreturning "name", "id";',
+          'update "public"."city" set\n' +
+          ' "name" = $1\n' +
+          'where "id" = $2\n' +
+          'returning "name", "id";',
           ['title', 1],
         ],
         returned: Promise.resolve({ rows: [] }),
@@ -294,18 +297,18 @@ describe('updateEntities', () => {
           name: 'third_name',
           id: 3,
         },
-      ]);
+      ], ['name', 'countrycode', 'id']);
 
       const expectedSql = `
     update "public"."city" as update_table
-    set 
+    set
       "countrycode" = data_table."countrycode", "name" = data_table."name"
     from (
       select *
       from unnest(array[$1, $2, $3],array[$4, $5, $6],array[$7, $8, $9])
     ) as data_table ("countrycode", "name", "id")
     where update_table."id"::text = data_table."id"::text
-    returning update_table."name", update_table."countrycode", update_table."id";`;
+    returning update_table.name, update_table.countrycode, update_table.id;`;
 
       const expectedParams = [
         'AFG',
@@ -357,6 +360,7 @@ describe('updateEntities', () => {
             id: 3,
           },
         ],
+        ['name', 'countrycode', 'id'],
       );
 
       assertArrayIncludes(results!, [
@@ -378,7 +382,7 @@ describe('upsertEntity', () => {
 
       const norm = new Norm<DbSchema>(db);
 
-      const expectedSql = `insert into "public"."city" ("name", "id") 
+      const expectedSql = `insert into "public"."city" ("name", "id")
     values ($1,$2)
     on conflict ("id") do update set "name" = excluded."name"
     returning "name", "id", "countrycode";`;
@@ -390,6 +394,7 @@ describe('upsertEntity', () => {
         ['countrycode'],
         ['id'],
         { name: 'name', id: 2, countrycode: undefined },
+        ['name', 'id', 'countrycode'],
       );
 
       assertSpyCall(querySpy, 0, {
@@ -409,7 +414,7 @@ describe('upsertEntity', () => {
       const norm = new Norm<DbSchema>(db);
 
       const expectedSql =
-        `insert into "public"."country" ("continent", "code", "headofstate") 
+        `insert into "public"."country" ("continent", "code", "headofstate")
     values ($1,$2,$3)
     on conflict ("code") do update set "continent" = excluded."continent", "headofstate" = excluded."headofstate"
     returning "continent", "code", "headofstate";`;
@@ -421,6 +426,7 @@ describe('upsertEntity', () => {
         ['headofstate'],
         ['code'],
         { continent: 'continent', code: 'code', headofstate: null },
+        ['continent', 'code', 'headofstate'],
       );
 
       assertSpyCall(querySpy, 0, {
@@ -440,7 +446,7 @@ describe('upsertEntity', () => {
       const norm = new Norm<DbSchema>(db);
 
       const expectedSql =
-        `insert into "public"."country" ("continent", "code", "headofstate", "gnp") 
+        `insert into "public"."country" ("continent", "code", "headofstate", "gnp")
     values ($1,$2,$3,$4)
     on conflict ("code") do update set "continent" = excluded."continent", "headofstate" = excluded."headofstate", "gnp" = excluded."gnp"
     returning "continent", "code", "headofstate", "gnp";`;
@@ -457,6 +463,7 @@ describe('upsertEntity', () => {
           headofstate: 'headofstate',
           gnp: 'gnp',
         },
+        ['continent', 'code', 'gnp'],
       );
 
       assertSpyCall(querySpy, 0, {
@@ -475,7 +482,7 @@ describe('upsertEntity', () => {
 
       const norm = new Norm<DbSchema>(db);
 
-      const expectedSql = `insert into "public"."country" ("continent", "code") 
+      const expectedSql = `insert into "public"."country" ("continent", "code")
     values ($1,$2)
     on conflict ("code") do update set "continent" = excluded."continent"
     returning "continent", "code";`;
@@ -487,6 +494,7 @@ describe('upsertEntity', () => {
         [],
         ['code'],
         { continent: 'continent', code: 'code' },
+        ['continent', 'code'],
       );
 
       assertSpyCall(querySpy, 0, {
@@ -525,13 +533,14 @@ describe('bulkUpsertEntity', () => {
           id: 1,
           countrycode: 'AFG',
         }],
+        ['name', 'population', 'district', 'id', 'countrycode'],
       );
 
       const expectedSql = `
       with _query as (
-        
-        insert into "public"."city" ("name", "id", "countrycode", "district", "population") 
-        values 
+
+        insert into "public"."city" ("name", "id", "countrycode", "district", "population")
+        values
           ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10)
         on conflict ("id") do update set "name" = excluded."name", "countrycode" = excluded."countrycode", "district" = excluded."district", "population" = excluded."population"
         returning "name", "id", "district", "population", "countrycode"
@@ -553,8 +562,8 @@ describe('bulkUpsertEntity', () => {
       ];
 
       assertEquals(
-        removeWhitespace(expectedSql),
-        removeWhitespace(querySpy.calls[0].args[0]),
+        removeWhitespace(expectedSql.toLowerCase()),
+        removeWhitespace(querySpy.calls[0].args[0].toLowerCase()),
       );
       assertEquals(expectedParams, querySpy.calls[0].args[1]);
     },
@@ -619,6 +628,19 @@ describe('bulkUpsertEntity', () => {
             headofstate: 'headofstate',
             gnp: '5000',
           },
+        ],
+        [
+          'name',
+          'region',
+          'continent',
+          'localname',
+          'governmentform',
+          'code2',
+          'surfacearea',
+          'population',
+          'code',
+          'headofstate',
+          'gnp',
         ],
       );
 
@@ -693,11 +715,12 @@ describe('bulkInsertEntity', () => {
           id: 1,
           countrycode: 'AFG',
         }],
+        ['name', 'population', 'district', 'id', 'countrycode'],
       );
 
       const expectedSql = `
-    insert into "public"."city" ("name", "id", "countrycode", "district", "population") 
-    values 
+    insert into "public"."city" ("name", "id", "countrycode", "district", "population")
+    values
       ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10)
     returning "name", "id", "countrycode", "district", "population";`;
 
@@ -744,6 +767,7 @@ describe('bulkInsertEntity', () => {
           id: 1200001,
           countrycode: 'AFG',
         }],
+        ['name', 'population', 'id', 'district', 'countrycode'],
       );
 
       assertEquals(results, [

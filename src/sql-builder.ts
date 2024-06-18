@@ -111,16 +111,18 @@ export class SQLBuilder {
       }`
       : '';
 
+    const returningClause = `RETURNING ${quoteAndJoin(columnsToReturn)}`;
+
     const preparedQuery = `
   insert into "${String(schema)}"."${String(tableName)}" (${
       quoteAndJoin(
         columnsToInsert,
       )
-    }) 
-  values 
+    })
+  values
     ${stmts.map((value) => `(${value.join(', ')})`).join(', ')}
   ${onConflictStatement}
-  returning ${quoteAndJoin(columnsToReturn)}`;
+  ${returningClause}`;
 
     return { lastIdx, valuesToInsert, preparedQuery };
   }
