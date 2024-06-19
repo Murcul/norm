@@ -96,7 +96,7 @@ export class Norm<DbSchema extends SchemaBase> {
     whereColumns: WC,
     updatedValues:
       & {
-        [updateColumn in UC[number]]: DbSchema[S][T][updateColumn];
+        [updateColumn in UC[number]]?: DbSchema[S][T][updateColumn];
       }
       & {
         [whereColumn in WC[number]]: DbSchema[S][T][whereColumn];
@@ -108,20 +108,22 @@ export class Norm<DbSchema extends SchemaBase> {
     type C = keyof DbSchema[S][T];
 
     const nonUndefinedValues = (Object.keys(updatedValues) as Array<C>).reduce<
-      { [key in C]: Array<DbSchema[S][T][C]> }
-    >((obj, key: C) => {
-      if (updatedValues[key] !== undefined) {
-        return {
-          ...obj,
-          [key]: updatedValues[key],
-        };
-      }
-      return obj;
-    }, {} as { [key in C]: Array<DbSchema[S][T][C]> });
+      { [key in UC[number]]?: DbSchema[S][T][key] }
+    >(
+      (obj, key: C) => {
+        if (
+          updatedValues[key] !== undefined
+        ) {
+          obj[key] = updatedValues[key] as DbSchema[S][T][C];
+        }
+        return obj;
+      },
+      {} as { [key in UC[number]]?: DbSchema[S][T][key] },
+    );
 
     // Runtime check for required columns in object
     whereColumns.map((column) => {
-      if (nonUndefinedValues[column] === undefined) {
+      if (updatedValues[column] === undefined) {
         throw new Error(
           'Trying to update an entity without passing in where columns',
         );
@@ -148,13 +150,11 @@ export class Norm<DbSchema extends SchemaBase> {
 
     const preparedQuery = `update "${String(schema)}"."${
       String(tableName)
-    }" set 
- ${
+    }" set ${
       filteredColumnsToUpdate
         .map((column, idx) => `"${String(column)}" = $${idx + 1}`)
         .join(', ')
-    }
-where ${
+    } where ${
       whereColumns
         .map(
           (whereColumn, idx) =>
@@ -163,8 +163,7 @@ where ${
             }`,
         )
         .join(' and ')
-    }
-returning ${quoteAndJoin(columnsToReturn)};`;
+    } returning ${quoteAndJoin(columnsToReturn)};`;
 
     const result = await this.dbClient.query(preparedQuery, [
       ...valuesToUpdate,
@@ -279,7 +278,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
 
     const preparedQuery = `
     update "${String(schema)}"."${String(tableName)}" as update_table
-    set 
+    set
       ${filteredColumnsDataTableList.join(', ')}
     from (
       select *
@@ -383,7 +382,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       quoteAndJoin(
         columnsToInsert,
       )
-    }) 
+    })
     values (${columnsToInsert.map((_column, idx) => `$${idx + 1}`)})
     ${onConflictStatement}
     returning ${quoteAndJoin(columnsToReturn)};`;
@@ -533,8 +532,8 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       quoteAndJoin(
         columnsToInsert,
       )
-    }) 
-   values 
+    })
+   values
      ${stmts.map((value) => `(${value.join(', ')})`).join(', ')}
    returning ${quoteAndJoin(columnsToReturn)};`;
 
