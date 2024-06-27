@@ -97,7 +97,7 @@ export class Norm<DbSchema extends SchemaBase> {
     whereColumns: WC,
     updatedValues:
       & {
-        [updateColumn in UC[number]]: DbSchema[S][T][updateColumn];
+        [updateColumn in UC[number]]?: DbSchema[S][T][updateColumn];
       }
       & {
         [whereColumn in WC[number]]: DbSchema[S][T][whereColumn];
@@ -105,25 +105,27 @@ export class Norm<DbSchema extends SchemaBase> {
       & {
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       },
-    returningColumns: RT,
+    returningColumns?: RT,
   ): Promise<Pick<DbSchema[S][T], UC[number] | WC[number]> | null> => {
     type C = keyof DbSchema[S][T];
 
     const nonUndefinedValues = (Object.keys(updatedValues) as Array<C>).reduce<
-      { [key in C]: Array<DbSchema[S][T][C]> }
-    >((obj, key: C) => {
-      if (updatedValues[key] !== undefined) {
-        return {
-          ...obj,
-          [key]: updatedValues[key],
-        };
-      }
-      return obj;
-    }, {} as { [key in C]: Array<DbSchema[S][T][C]> });
+      { [key in UC[number]]?: DbSchema[S][T][key] }
+    >(
+      (obj, key: C) => {
+        if (
+          updatedValues[key] !== undefined
+        ) {
+          obj[key] = updatedValues[key] as DbSchema[S][T][C];
+        }
+        return obj;
+      },
+      {} as { [key in UC[number]]?: DbSchema[S][T][key] },
+    );
 
     // Runtime check for required columns in object
     whereColumns.map((column) => {
-      if (nonUndefinedValues[column] === undefined) {
+      if (updatedValues[column] === undefined) {
         throw new Error(
           'Trying to update an entity without passing in where columns',
         );
@@ -141,7 +143,7 @@ export class Norm<DbSchema extends SchemaBase> {
     const columnsToReturn = [
       ...columnsToUpdate,
       ...whereColumns,
-      ...returningColumns,
+      ...(returningColumns ?? []),
     ];
 
     const valuesToUpdate = filteredColumnsToUpdate.map(
@@ -152,13 +154,13 @@ export class Norm<DbSchema extends SchemaBase> {
       nonUndefinedValues[column]
     );
 
-    const preparedQuery = `update "${String(schema)}"."${String(tableName)}" set
- ${
+    const preparedQuery = `update "${String(schema)}"."${
+      String(tableName)
+    }" set ${
       filteredColumnsToUpdate
         .map((column, idx) => `"${String(column)}" = $${idx + 1}`)
         .join(', ')
-    }
-where ${
+    } where ${
       whereColumns
         .map(
           (whereColumn, idx) =>
@@ -167,8 +169,7 @@ where ${
             }`,
         )
         .join(' and ')
-    }
-returning ${quoteAndJoin(columnsToReturn)};`;
+    } returning ${quoteAndJoin(columnsToReturn)};`;
 
     const result = await this.dbClient.query(preparedQuery, [
       ...valuesToUpdate,
@@ -199,7 +200,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
     T extends keyof DbSchema[S],
     UC extends NonEmptyArray<keyof DbSchema[S][T]>,
     WC extends NonEmptyArray<keyof DbSchema[S][T]>,
-    RT extends Array<keyof DbSchema[S][T]>,
+    RT extends Array<keyof DbSchema[S][T]> = [],
   >(
     schema: S,
     tableName: T,
@@ -216,7 +217,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       }
     >,
-    returningColumns: RT,
+    returningColumns: RT = [] as unknown as RT,
   ): Promise<Array<Pick<DbSchema[S][T], UC[number] | WC[number]>> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -236,11 +237,9 @@ returning ${quoteAndJoin(columnsToReturn)};`;
     const columnsToReturn = [
       ...columnsToUpdate,
       ...whereColumns,
-      ...returningColumns,
+      ...(returningColumns ?? []),
     ];
     const combinedColumns = [...filteredColumnsToUpdate, ...whereColumns];
-
-    const uniqueColumnsToReturn = [...new Set(columnsToReturn)];
 
     const valuesToInsert = nonUndefinedValues.reduce<
       { [key: string]: SupportedTypes[] }
@@ -298,10 +297,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       from unnest(${stmts.map((stmt) => `array[${stmt.join(', ')}]`)})
     ) as data_table (${columnsList.join(', ')})
     where ${whereClause.join(' and ')}
-    returning ${
-      uniqueColumnsToReturn.map((column) => `update_table.${String(column)}`)
-        .join(', ')
-    };`;
+    returning ${quoteAndJoin(columnsToReturn, 'update_table')};`;
 
     const result = await this.dbClient.query(preparedQuery, preparedValues);
 
@@ -325,7 +321,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
     T extends keyof DbSchema[S],
     RC extends NonEmptyArray<keyof DbSchema[S][T]>,
     MC extends Array<Exclude<keyof DbSchema[S][T], RC[number]>>,
-    RT extends Array<keyof DbSchema[S][T]>,
+    RT extends Array<keyof DbSchema[S][T]> = [],
   >(
     schema: S,
     tableName: T,
@@ -339,7 +335,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       & {
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       },
-    returningColumns: RT,
+    returningColumns?: RT,
   ): Promise<Pick<DbSchema[S][T], RC[number] | MC[number]> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -378,7 +374,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
     const columnsToReturn = [
       ...requiredColumns,
       ...maybeColumns,
-      ...returningColumns,
+      ...(returningColumns ?? []),
     ];
 
     const valuesToInsert = columnsToInsert.map(
@@ -449,7 +445,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       }
     >,
-    returningColumns: RT,
+    returningColumns?: RT,
   ): Promise<Array<Pick<DbSchema[S][T], RC[number] | MC[number]>> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -469,8 +465,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
     const columnsToReturn = [
       ...requiredColumns,
       ...maybeColumns,
-      ...requiredColumns,
-      ...returningColumns,
+      ...(returningColumns ?? []),
     ];
 
     const sqlBuilder = new SQLBuilder();
@@ -523,7 +518,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       }
     >,
-    returningColumns: RT,
+    returningColumns?: RT,
   ): Promise<Array<Pick<DbSchema[S][T], RC[number] | MC[number]>> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -540,7 +535,7 @@ returning ${quoteAndJoin(columnsToReturn)};`;
       acceptedColumns.includes(col)
     );
 
-    const columnsToReturn = [...requiredColumns, ...returningColumns];
+    const columnsToReturn = [...requiredColumns, ...(returningColumns ?? [])];
 
     const { stmts, values: valuesToInsert } = nonUndefinedValues.reduce<
       { stmts: Array<string[]>; values: any }

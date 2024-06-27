@@ -257,16 +257,34 @@ describe('updateEntity', () => {
 
       assertSpyCall(querySpy, 0, {
         args: [
-          'update "public"."city" set\n' +
-          ' "name" = $1\n' +
-          'where "id" = $2\n' +
-          'returning "name", "id";',
+          'update "public"."city" set "name" = $1 where "id" = $2 returning "name", "id";',
           ['title', 1],
         ],
         returned: Promise.resolve({ rows: [] }),
       });
     },
   );
+  it('should allow partial updates for specified columns only', async () => {
+    const db = getDB();
+
+    const querySpy = spy(db, 'query');
+
+    const norm = new Norm<DbSchema>(db);
+
+    await norm.updateEntity('public', 'city', ['name', 'population'], ['id'], {
+      name: 'NewName',
+      population: undefined,
+      id: 123,
+    });
+
+    assertSpyCall(querySpy, 0, {
+      args: [
+        'update "public"."city" set "name" = $1 where "id" = $2 returning "name", "population", "id";',
+        ['NewName', 123],
+      ],
+      returned: Promise.resolve({ rows: [] }),
+    });
+  });
 });
 
 describe('updateEntities', () => {
@@ -308,7 +326,7 @@ describe('updateEntities', () => {
       from unnest(array[$1, $2, $3],array[$4, $5, $6],array[$7, $8, $9])
     ) as data_table ("countrycode", "name", "id")
     where update_table."id"::text = data_table."id"::text
-    returning update_table.name, update_table.countrycode, update_table.id;`;
+    returning update_table."name", update_table."countrycode", update_table."id";`;
 
       const expectedParams = [
         'AFG',
