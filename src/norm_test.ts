@@ -257,13 +257,34 @@ describe('updateEntity', () => {
 
       assertSpyCall(querySpy, 0, {
         args: [
-          'update "public"."city" set \n "name" = $1\nwhere "id" = $2\nreturning "name", "id";',
+          'update "public"."city" set "name" = $1 where "id" = $2 returning "name", "id";',
           ['title', 1],
         ],
         returned: Promise.resolve({ rows: [] }),
       });
     },
   );
+  it('should allow partial updates for specified columns only', async () => {
+    const db = getDB();
+
+    const querySpy = spy(db, 'query');
+
+    const norm = new Norm<DbSchema>(db);
+
+    await norm.updateEntity('public', 'city', ['name', 'population'], ['id'], {
+      name: 'NewName',
+      population: undefined,
+      id: 123,
+    });
+
+    assertSpyCall(querySpy, 0, {
+      args: [
+        'update "public"."city" set "name" = $1 where "id" = $2 returning "name", "population", "id";',
+        ['NewName', 123],
+      ],
+      returned: Promise.resolve({ rows: [] }),
+    });
+  });
 });
 
 describe('updateEntities', () => {
@@ -298,7 +319,7 @@ describe('updateEntities', () => {
 
       const expectedSql = `
     update "public"."city" as update_table
-    set 
+    set
       "countrycode" = data_table."countrycode", "name" = data_table."name"
     from (
       select *
@@ -378,7 +399,7 @@ describe('upsertEntity', () => {
 
       const norm = new Norm<DbSchema>(db);
 
-      const expectedSql = `insert into "public"."city" ("name", "id") 
+      const expectedSql = `insert into "public"."city" ("name", "id")
     values ($1,$2)
     on conflict ("id") do update set "name" = excluded."name"
     returning "name", "id", "countrycode";`;
@@ -409,7 +430,7 @@ describe('upsertEntity', () => {
       const norm = new Norm<DbSchema>(db);
 
       const expectedSql =
-        `insert into "public"."country" ("continent", "code", "headofstate") 
+        `insert into "public"."country" ("continent", "code", "headofstate")
     values ($1,$2,$3)
     on conflict ("code") do update set "continent" = excluded."continent", "headofstate" = excluded."headofstate"
     returning "continent", "code", "headofstate";`;
@@ -440,7 +461,7 @@ describe('upsertEntity', () => {
       const norm = new Norm<DbSchema>(db);
 
       const expectedSql =
-        `insert into "public"."country" ("continent", "code", "headofstate", "gnp") 
+        `insert into "public"."country" ("continent", "code", "headofstate", "gnp")
     values ($1,$2,$3,$4)
     on conflict ("code") do update set "continent" = excluded."continent", "headofstate" = excluded."headofstate", "gnp" = excluded."gnp"
     returning "continent", "code", "headofstate", "gnp";`;
@@ -475,7 +496,7 @@ describe('upsertEntity', () => {
 
       const norm = new Norm<DbSchema>(db);
 
-      const expectedSql = `insert into "public"."country" ("continent", "code") 
+      const expectedSql = `insert into "public"."country" ("continent", "code")
     values ($1,$2)
     on conflict ("code") do update set "continent" = excluded."continent"
     returning "continent", "code";`;
@@ -529,9 +550,9 @@ describe('bulkUpsertEntity', () => {
 
       const expectedSql = `
       with _query as (
-        
-        insert into "public"."city" ("name", "id", "countrycode", "district", "population") 
-        values 
+
+        insert into "public"."city" ("name", "id", "countrycode", "district", "population")
+        values
           ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10)
         on conflict ("id") do update set "name" = excluded."name", "countrycode" = excluded."countrycode", "district" = excluded."district", "population" = excluded."population"
         returning "name", "id", "district", "population", "countrycode"
@@ -696,8 +717,8 @@ describe('bulkInsertEntity', () => {
       );
 
       const expectedSql = `
-    insert into "public"."city" ("name", "id", "countrycode", "district", "population") 
-    values 
+    insert into "public"."city" ("name", "id", "countrycode", "district", "population")
+    values
       ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10)
     returning "name", "id", "countrycode", "district", "population";`;
 
