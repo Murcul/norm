@@ -253,7 +253,7 @@ describe('updateEntity', () => {
       await norm.updateEntity('public', 'city', ['name'], ['id'], {
         name: 'title',
         id: 1,
-      });
+      }, ['name', 'id']);
 
       assertSpyCall(querySpy, 0, {
         args: [
@@ -315,7 +315,7 @@ describe('updateEntities', () => {
           name: 'third_name',
           id: 3,
         },
-      ]);
+      ], ['name', 'countrycode', 'id']);
 
       const expectedSql = `
     update "public"."city" as update_table
@@ -378,6 +378,7 @@ describe('updateEntities', () => {
             id: 3,
           },
         ],
+        ['name', 'countrycode', 'id'],
       );
 
       assertArrayIncludes(results!, [
@@ -411,6 +412,7 @@ describe('upsertEntity', () => {
         ['countrycode'],
         ['id'],
         { name: 'name', id: 2, countrycode: undefined },
+        ['name', 'id', 'countrycode'],
       );
 
       assertSpyCall(querySpy, 0, {
@@ -442,6 +444,7 @@ describe('upsertEntity', () => {
         ['headofstate'],
         ['code'],
         { continent: 'continent', code: 'code', headofstate: null },
+        ['continent', 'code', 'headofstate'],
       );
 
       assertSpyCall(querySpy, 0, {
@@ -478,6 +481,7 @@ describe('upsertEntity', () => {
           headofstate: 'headofstate',
           gnp: 'gnp',
         },
+        ['continent', 'code', 'gnp'],
       );
 
       assertSpyCall(querySpy, 0, {
@@ -508,6 +512,7 @@ describe('upsertEntity', () => {
         [],
         ['code'],
         { continent: 'continent', code: 'code' },
+        ['continent', 'code'],
       );
 
       assertSpyCall(querySpy, 0, {
@@ -546,6 +551,7 @@ describe('bulkUpsertEntity', () => {
           id: 1,
           countrycode: 'AFG',
         }],
+        ['name', 'population', 'district', 'id', 'countrycode'],
       );
 
       const expectedSql = `
@@ -574,8 +580,8 @@ describe('bulkUpsertEntity', () => {
       ];
 
       assertEquals(
-        removeWhitespace(expectedSql),
-        removeWhitespace(querySpy.calls[0].args[0]),
+        removeWhitespace(expectedSql.toLowerCase()),
+        removeWhitespace(querySpy.calls[0].args[0].toLowerCase()),
       );
       assertEquals(expectedParams, querySpy.calls[0].args[1]);
     },
@@ -640,6 +646,19 @@ describe('bulkUpsertEntity', () => {
             headofstate: 'headofstate',
             gnp: '5000',
           },
+        ],
+        [
+          'name',
+          'region',
+          'continent',
+          'localname',
+          'governmentform',
+          'code2',
+          'surfacearea',
+          'population',
+          'code',
+          'headofstate',
+          'gnp',
         ],
       );
 
@@ -714,6 +733,7 @@ describe('bulkInsertEntity', () => {
           id: 1,
           countrycode: 'AFG',
         }],
+        ['name', 'population', 'district', 'id', 'countrycode'],
       );
 
       const expectedSql = `
@@ -765,6 +785,7 @@ describe('bulkInsertEntity', () => {
           id: 1200001,
           countrycode: 'AFG',
         }],
+        ['name', 'population', 'id', 'district', 'countrycode'],
       );
 
       assertEquals(results, [

@@ -89,6 +89,7 @@ export class Norm<DbSchema extends SchemaBase> {
     T extends keyof DbSchema[S],
     UC extends NonEmptyArray<keyof DbSchema[S][T]>,
     WC extends NonEmptyArray<keyof DbSchema[S][T]>,
+    RT extends Array<keyof DbSchema[S][T]>,
   >(
     schema: S,
     tableName: T,
@@ -104,6 +105,7 @@ export class Norm<DbSchema extends SchemaBase> {
       & {
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       },
+    returningColumns?: RT,
   ): Promise<Pick<DbSchema[S][T], UC[number] | WC[number]> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -138,7 +140,11 @@ export class Norm<DbSchema extends SchemaBase> {
         <T>(column: T | null): column is T => column !== null,
       );
 
-    const columnsToReturn = [...columnsToUpdate, ...whereColumns];
+    const columnsToReturn = [
+      ...columnsToUpdate,
+      ...whereColumns,
+      ...(returningColumns ?? []),
+    ];
 
     const valuesToUpdate = filteredColumnsToUpdate.map(
       (column) => nonUndefinedValues[column],
@@ -194,6 +200,7 @@ export class Norm<DbSchema extends SchemaBase> {
     T extends keyof DbSchema[S],
     UC extends NonEmptyArray<keyof DbSchema[S][T]>,
     WC extends NonEmptyArray<keyof DbSchema[S][T]>,
+    RT extends Array<keyof DbSchema[S][T]> = [],
   >(
     schema: S,
     tableName: T,
@@ -210,6 +217,7 @@ export class Norm<DbSchema extends SchemaBase> {
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       }
     >,
+    returningColumns: RT = [] as unknown as RT,
   ): Promise<Array<Pick<DbSchema[S][T], UC[number] | WC[number]>> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -226,7 +234,11 @@ export class Norm<DbSchema extends SchemaBase> {
       !whereColumns.includes(column)
     );
 
-    const columnsToReturn = [...columnsToUpdate, ...whereColumns];
+    const columnsToReturn = [
+      ...columnsToUpdate,
+      ...whereColumns,
+      ...(returningColumns ?? []),
+    ];
     const combinedColumns = [...filteredColumnsToUpdate, ...whereColumns];
 
     const valuesToInsert = nonUndefinedValues.reduce<
@@ -309,6 +321,7 @@ export class Norm<DbSchema extends SchemaBase> {
     T extends keyof DbSchema[S],
     RC extends NonEmptyArray<keyof DbSchema[S][T]>,
     MC extends Array<Exclude<keyof DbSchema[S][T], RC[number]>>,
+    RT extends Array<keyof DbSchema[S][T]> = [],
   >(
     schema: S,
     tableName: T,
@@ -322,6 +335,7 @@ export class Norm<DbSchema extends SchemaBase> {
       & {
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       },
+    returningColumns?: RT,
   ): Promise<Pick<DbSchema[S][T], RC[number] | MC[number]> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -357,7 +371,11 @@ export class Norm<DbSchema extends SchemaBase> {
         ),
     ];
 
-    const columnsToReturn = [...requiredColumns, ...maybeColumns];
+    const columnsToReturn = [
+      ...requiredColumns,
+      ...maybeColumns,
+      ...(returningColumns ?? []),
+    ];
 
     const valuesToInsert = columnsToInsert.map(
       (column) => nonUndefinedValues[column],
@@ -412,6 +430,7 @@ export class Norm<DbSchema extends SchemaBase> {
     T extends keyof DbSchema[S],
     RC extends NonEmptyArray<keyof DbSchema[S][T]>,
     MC extends Array<Exclude<keyof DbSchema[S][T], RC[number]>>,
+    RT extends Array<keyof DbSchema[S][T]>,
   >(
     schema: S,
     tableName: T,
@@ -426,6 +445,7 @@ export class Norm<DbSchema extends SchemaBase> {
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       }
     >,
+    returningColumns?: RT,
   ): Promise<Array<Pick<DbSchema[S][T], RC[number] | MC[number]>> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -442,7 +462,11 @@ export class Norm<DbSchema extends SchemaBase> {
       acceptedColumns.includes(col)
     );
 
-    const columnsToReturn = [...requiredColumns, ...maybeColumns];
+    const columnsToReturn = [
+      ...requiredColumns,
+      ...maybeColumns,
+      ...(returningColumns ?? []),
+    ];
 
     const sqlBuilder = new SQLBuilder();
 
@@ -481,6 +505,7 @@ export class Norm<DbSchema extends SchemaBase> {
     T extends keyof DbSchema[S],
     RC extends NonEmptyArray<keyof DbSchema[S][T]>,
     MC extends Array<Exclude<keyof DbSchema[S][T], RC[number]>>,
+    RT extends Array<keyof DbSchema[S][T]>,
   >(
     schema: S,
     tableName: T,
@@ -493,6 +518,7 @@ export class Norm<DbSchema extends SchemaBase> {
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       }
     >,
+    returningColumns?: RT,
   ): Promise<Array<Pick<DbSchema[S][T], RC[number] | MC[number]>> | null> => {
     type C = keyof DbSchema[S][T];
 
@@ -509,7 +535,7 @@ export class Norm<DbSchema extends SchemaBase> {
       acceptedColumns.includes(col)
     );
 
-    const columnsToReturn = requiredColumns;
+    const columnsToReturn = [...requiredColumns, ...(returningColumns ?? [])];
 
     const { stmts, values: valuesToInsert } = nonUndefinedValues.reduce<
       { stmts: Array<string[]>; values: any }
