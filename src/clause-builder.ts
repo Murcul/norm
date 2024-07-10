@@ -48,19 +48,20 @@ export class ClauseBuilder<T extends string | number | symbol> {
     const clause = Object.entries(clauseFields).map(([key, values]) => {
       const fields = values?.map((fieldValue) => {
         if (fieldValue == null) {
-          // Handle the null or undefined fieldValue here. 
+          // Handle the null or undefined fieldValue here.
           return ''; // Currently just skips this iteration
         }
         // Check if the fieldValue includes an operator or is just a value
-        const { value, operator } = typeof fieldValue === 'object' && 'operator' in fieldValue
-          ? fieldValue
-          : { value: fieldValue, operator: 'IN' }; // Default to 'IN' if no operator is provided (to support legacy syntax)
-        
+        const { value, operator } =
+          typeof fieldValue === 'object' && 'operator' in fieldValue
+            ? fieldValue
+            : { value: fieldValue, operator: 'IN' }; // Default to 'IN' if no operator is provided (to support legacy syntax)
+
         const arrayValue = Array.isArray(value) ? value : [value];
 
         const idx = `$${this.nextPreparedIndex}`;
         this.preparedValues.push(value);
-  
+
         // Return the SQL fragment for this field, using the specified operator
         if (operator.toUpperCase() === 'IN') {
           // for the in operator make an array
@@ -71,10 +72,10 @@ export class ClauseBuilder<T extends string | number | symbol> {
           return `"${key}" ${operator} (${idx})`;
         }
       }).join(` ${conjunction} `);
-  
+
       return `${fields}`;
     });
-  
+
     return `(${clause.join(` ${conjunction} `)})`;
   }
 
