@@ -8,7 +8,6 @@ export type SupportedTypes =
   | string
   | boolean
   | Date
-  // deno-lint-ignore ban-types
   | object
   | null
   | undefined

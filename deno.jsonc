@@ -4,14 +4,12 @@
   },
 
   "lint": {
-    "files": {
-      "include": ["./"],
-      "exclude": [
-        "./testdata/",
-        "./npm/",
-        "src/test/fixtures/norm-schema.type.ts"
-      ]
-    },
+    "include": ["./"],
+    "exclude": [
+      "./testdata/",
+      "./npm/",
+      "src/test/fixtures/norm-schema.type.ts"
+    ],
     "rules": {
       "tags": ["recommended"],
       "include": ["ban-untagged-todo", "no-external-import"],
@@ -19,20 +17,16 @@
     }
   },
   "fmt": {
-    "files": {
-      "include": ["./"],
-      "exclude": [
-        "./testdata/",
-        "./npm/",
-        "src/test/fixtures/norm-schema.type.ts"
-      ]
-    },
-    "options": {
-      "useTabs": false,
-      "lineWidth": 80,
-      "indentWidth": 2,
-      "singleQuote": true,
-      "proseWrap": "preserve"
-    }
+    "include": ["./"],
+    "exclude": [
+      "./testdata/",
+      "./npm/",
+      "src/test/fixtures/norm-schema.type.ts"
+    ],
+    "useTabs": false,
+    "lineWidth": 80,
+    "indentWidth": 2,
+    "singleQuote": true,
+    "proseWrap": "preserve"
   }
 }
