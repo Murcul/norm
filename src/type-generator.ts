@@ -116,7 +116,7 @@ export class TypeGenerator {
       let typedColumnName = columnName;
       let columnType = `${info.type.type}`;
 
-      const isColumnOptional = info.nullable;
+      const isColumnOptional = info.nullable || info.hasDefaultValue;
 
       if (isColumnOptional) {
         typedColumnName = `${typedColumnName}?`;
