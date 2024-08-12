@@ -55,7 +55,7 @@ export class Norm<DbSchema extends SchemaBase> {
         keyof DbSchema[S][T],
         DbSchema[S][T][keyof DbSchema[S][T]]
       >,
-  ): Promise<Array<Pick<DbSchema[S][T], SC[number]>>> => {
+  ): Promise<Array<Required<Pick<DbSchema[S][T], SC[number]>>>> => {
     const { clause: whereClause, values: selectOnValues } = new ClauseBuilder(
       selectOn,
     ).buildWhereClause();
@@ -70,7 +70,7 @@ export class Norm<DbSchema extends SchemaBase> {
 
     const result = await this.dbClient.query(preparedQuery, selectOnValues);
 
-    return result.rows as Array<Pick<DbSchema[S][T], SC[number]>>;
+    return result.rows as Array<Required<Pick<DbSchema[S][T], SC[number]>>>;
   };
 
   /**
@@ -82,7 +82,7 @@ export class Norm<DbSchema extends SchemaBase> {
    * @param whereColumns columns used to select the entity to update
    * @param updatedValues object that must contain all the `whereColumns` and may contain `columnsToUpdate` (missing keys are skipped)
    *
-   * @returns promise that resolves to an array of inserted entity
+   * @returns promise that resolves to the updated entity
    */
   updateEntity = async <
     S extends keyof DbSchema,
@@ -106,7 +106,9 @@ export class Norm<DbSchema extends SchemaBase> {
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       },
     returningColumns?: RT,
-  ): Promise<Pick<DbSchema[S][T], UC[number] | WC[number]> | null> => {
+  ): Promise<
+    Required<Pick<DbSchema[S][T], UC[number] | WC[number]>> | null
+  > => {
     type C = keyof DbSchema[S][T];
 
     const nonUndefinedValues = (Object.keys(updatedValues) as Array<C>).reduce<
@@ -177,9 +179,11 @@ export class Norm<DbSchema extends SchemaBase> {
     ]);
 
     return (result.rows[0] ?? null) as
-      | Pick<
-        DbSchema[S][T],
-        UC[number] | WC[number]
+      | Required<
+        Pick<
+          DbSchema[S][T],
+          UC[number] | WC[number]
+        >
       >
       | null;
   };
@@ -218,7 +222,9 @@ export class Norm<DbSchema extends SchemaBase> {
       }
     >,
     returningColumns: RT = [] as unknown as RT,
-  ): Promise<Array<Pick<DbSchema[S][T], UC[number] | WC[number]>> | null> => {
+  ): Promise<
+    Array<Required<Pick<DbSchema[S][T], UC[number] | WC[number]>>> | null
+  > => {
     type C = keyof DbSchema[S][T];
 
     const nonUndefinedValues = updatedValues.map((value) => {
@@ -302,7 +308,7 @@ export class Norm<DbSchema extends SchemaBase> {
     const result = await this.dbClient.query(preparedQuery, preparedValues);
 
     return result.rows as
-      | Array<Pick<DbSchema[S][T], UC[number] | WC[number]>>
+      | Array<Required<Pick<DbSchema[S][T], UC[number] | WC[number]>>>
       | null;
   };
 
@@ -336,7 +342,9 @@ export class Norm<DbSchema extends SchemaBase> {
         [opionalKey in keyof DbSchema[S][T]]?: DbSchema[S][T][opionalKey];
       },
     returningColumns?: RT,
-  ): Promise<Pick<DbSchema[S][T], RC[number] | MC[number]> | null> => {
+  ): Promise<
+    Required<Pick<DbSchema[S][T], RC[number] | MC[number]>> | null
+  > => {
     type C = keyof DbSchema[S][T];
 
     const nonUndefinedValues = (Object.keys(values) as Array<C>).reduce<
@@ -408,9 +416,11 @@ export class Norm<DbSchema extends SchemaBase> {
     const result = await this.dbClient.query(preparedQuery, valuesToInsert);
 
     return (result.rows[0] ?? null) as
-      | Pick<
-        DbSchema[S][T],
-        RC[number] | MC[number]
+      | Required<
+        Pick<
+          DbSchema[S][T],
+          RC[number] | MC[number]
+        >
       >
       | null;
   };
@@ -446,7 +456,9 @@ export class Norm<DbSchema extends SchemaBase> {
       }
     >,
     returningColumns?: RT,
-  ): Promise<Array<Pick<DbSchema[S][T], RC[number] | MC[number]>> | null> => {
+  ): Promise<
+    Array<Required<Pick<DbSchema[S][T], RC[number] | MC[number]>>> | null
+  > => {
     type C = keyof DbSchema[S][T];
 
     const nonUndefinedValues = values.map((value) => {
@@ -484,9 +496,11 @@ export class Norm<DbSchema extends SchemaBase> {
 
     return result.rows as
       | Array<
-        Pick<
-          DbSchema[S][T],
-          RC[number] | MC[number]
+        Required<
+          Pick<
+            DbSchema[S][T],
+            RC[number] | MC[number]
+          >
         >
       >
       | null;
@@ -498,6 +512,7 @@ export class Norm<DbSchema extends SchemaBase> {
    * @param tableName table name to insert the entity into
    * @param requiredColumns colums that need to be passed in as values of the inserted object
    * @param values array of objects that must contain all the `whereColumns`
+   *
    * @returns promise that resolves to an array of inserted entities
    */
   bulkInsertEntity = async <
@@ -519,7 +534,9 @@ export class Norm<DbSchema extends SchemaBase> {
       }
     >,
     returningColumns?: RT,
-  ): Promise<Array<Pick<DbSchema[S][T], RC[number] | MC[number]>> | null> => {
+  ): Promise<
+    Array<Required<Pick<DbSchema[S][T], RC[number] | MC[number]>>> | null
+  > => {
     type C = keyof DbSchema[S][T];
 
     const nonUndefinedValues = values.map((value) => {
@@ -567,9 +584,11 @@ export class Norm<DbSchema extends SchemaBase> {
 
     return result.rows as
       | Array<
-        Pick<
-          DbSchema[S][T],
-          RC[number] | MC[number]
+        Required<
+          Pick<
+            DbSchema[S][T],
+            RC[number] | MC[number]
+          >
         >
       >
       | null;
