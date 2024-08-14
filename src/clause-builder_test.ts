@@ -7,7 +7,11 @@ describe('ClauseBuilder', () => {
     'should return where clause when using only _and',
     () => {
       const filterClause = {
-        _and: [{ fieldOne: [1], fieldTwo: [2], fieldThree: [3] }],
+        _and: [{
+          fieldOne: [{ value: 1, operator: 'IN' }],
+          fieldTwo: [{ value: 2, operator: 'IN' }],
+          fieldThree: [{ value: 3, operator: 'IN' }],
+        }],
       };
 
       const whereClause = new ClauseBuilder(filterClause)
@@ -176,6 +180,33 @@ describe('ClauseBuilder', () => {
         5,
         8,
         9,
+      ]);
+    },
+  );
+
+  it(
+    'should return where clause when using only _and with different operators',
+    () => {
+      const filterClause = {
+        _and: [{
+          fieldOne: [{ value: 1, operator: '>' }],
+          fieldTwo: [{ value: 2, operator: '<' }],
+          fieldThree: [{ value: 3, operator: '=' }],
+        }],
+      };
+
+      const whereClause = new ClauseBuilder(filterClause)
+        .buildWhereClause();
+
+      const expectedClause =
+        '("fieldOne" > ($1) AND "fieldTwo" < ($2) AND "fieldThree" = ($3))';
+
+      assertEquals(whereClause.clause, expectedClause);
+      assertEquals(whereClause.nextPreparedIndex, 4);
+      assertEquals(whereClause.values, [
+        1,
+        2,
+        3,
       ]);
     },
   );
