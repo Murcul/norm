@@ -3,10 +3,7 @@
   "type": "module",
   "version": "1.0.0",
   "scripts": {
-    "prepare": "npm run build:npm 1.0.0 && npm run clean",
-    "clean": "cpy . '../' --cwd=npm",
     "format": "deno fmt",
-    "build:npm": "deno run --allow-env --allow-net --allow-write --allow-read --allow-run  src/build_npm.ts",
     "lint": "deno lint",
     "test": "deno test -A"
   },
@@ -15,8 +12,19 @@
     "src/"
   ],
   "dependencies": {
+    "@bartlomieju/postgres": "npm:@jsr/bartlomieju__postgres@^0.17.2",
+    "@std/assert": "npm:@jsr/std__assert@^1.0.11",
+    "@std/testing": "npm:@jsr/std__testing@^1.0.9",
+    "@std/path": "npm:@jsr/std__path@^1.0.8",
+    "@std/io": "npm:@jsr/std__io@^0.225.2",
+    "@std/flags": "npm:@jsr/std__flags@^0.224.0",
     "cpy-cli": "^4.2.0",
+    "lodash.difference": "^4.5.0",
+    "lodash.merge": "^4.6.2",
     "pg-structure": "^7.13.1",
     "zod": "^3.20.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0"
   }
 }

@@ -21,7 +21,7 @@ const uriToDBConfig = (uri: string) => {
   return databaseInfo.parse(info);
 };
 
-export const runTypeGenerator = async () => {
+export const runTypeGenerator = async (): Promise<string | undefined> => {
   const args = parse(Deno.args);
 
   const normConfig = JSON.parse(await Deno.readTextFile(normConfigFile));

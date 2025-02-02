@@ -1,23 +1,36 @@
 {
+  "name": "@gitstart/norm",
+  "license": "MIT",
+  "version": "1.8.0",
+  "exports": "./src/mod.ts",
   "tasks": {
-    "dev": "deno run --watch mod.ts"
+    "dev": "deno run --watch src/mod.ts"
   },
-
   "lint": {
-    "include": ["./"],
+    "include": [
+      "./"
+    ],
     "exclude": [
       "./testdata/",
       "./npm/",
       "src/test/fixtures/norm-schema.type.ts"
     ],
     "rules": {
-      "tags": ["recommended"],
-      "include": ["ban-untagged-todo", "no-external-import"],
-      "exclude": ["no-explicit-any"]
+      "tags": [
+        "recommended"
+      ],
+      "include": [
+        "ban-untagged-todo"
+      ],
+      "exclude": [
+        "no-explicit-any"
+      ]
     }
   },
   "fmt": {
-    "include": ["./"],
+    "include": [
+      "./"
+    ],
     "exclude": [
       "./testdata/",
       "./npm/",
@@ -28,5 +41,10 @@
     "indentWidth": 2,
     "singleQuote": true,
     "proseWrap": "preserve"
+  },
+  "nodeModulesDir": "auto",
+  "imports": {
+    "lodash/": "npm:lodash@^4.17.15/",
+    "@std/testing": "npm:@jsr/std__testing/"
   }
 }

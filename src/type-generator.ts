@@ -37,11 +37,14 @@ export class TypeGenerator {
     );
   }
 
-  getEnumTypeName(enumType: pgStructure.Type) {
+  getEnumTypeName(enumType: pgStructure.Type): string {
     return enumType.fullName.split('.').join('_');
   }
 
-  getMappedColumnType(column: pgStructure.Column) {
+  getMappedColumnType(column: pgStructure.Column): {
+    type: string;
+    validator: string;
+  } {
     const columnTypeName = (column.type.internalName ??
       column.type.name) as keyof typeof typeMapping;
 
@@ -77,7 +80,7 @@ export class TypeGenerator {
     };
   }
 
-  buildTableType(table: pgStructure.Table) {
+  buildTableType(table: pgStructure.Table): { [key: string]: IColumnType } {
     return table.columns.reduce<{ [key: string]: IColumnType }>(
       (pv, column) => {
         const columnType = this.buildColumnType(column);
@@ -91,7 +94,7 @@ export class TypeGenerator {
     );
   }
 
-  buildSchemaType(schema: pgStructure.Schema) {
+  buildSchemaType(schema: pgStructure.Schema): { [key: string]: InstanceReturnType<'buildTableType'> } {
     return schema.tables.reduce<
       { [key: string]: InstanceReturnType<'buildTableType'> }
     >((pv, table) => {
@@ -101,7 +104,7 @@ export class TypeGenerator {
     }, {});
   }
 
-  buildDBType(db: pgStructure.Db) {
+  buildDBType(db: pgStructure.Db): { [key: string]: InstanceReturnType<'buildSchemaType'> } {
     return db.schemas.reduce<
       { [key: string]: InstanceReturnType<'buildSchemaType'> }
     >((pv, schema) => {
@@ -111,7 +114,7 @@ export class TypeGenerator {
     }, {});
   }
 
-  generateTSTypingsForColumns(columns: InstanceReturnType<'buildTableType'>) {
+  generateTSTypingsForColumns(columns: InstanceReturnType<'buildTableType'>): string[] {
     return Object.entries(columns).map(([columnName, info]) => {
       let typedColumnName = columnName;
       let columnType = `${info.type.type}`;
@@ -134,7 +137,7 @@ export class TypeGenerator {
     });
   }
 
-  generateTSTypingsForTables(tables: InstanceReturnType<'buildSchemaType'>) {
+  generateTSTypingsForTables(tables: InstanceReturnType<'buildSchemaType'>): string[] {
     return Object.entries(tables).map(([tableName, columns]) => {
       return `"${tableName}": {
       ${this.generateTSTypingsForColumns(columns).join('\n')}
@@ -189,7 +192,7 @@ ${enumTypings.join('\n')}
     return typing.trim();
   }
 
-  async generate(outputDir: string) {
+  async generate(outputDir: string): Promise<string> {
     await this.init();
 
     if (!this.db) {

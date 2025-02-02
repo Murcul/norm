@@ -1,6 +1,7 @@
 {
   "imports": {
     "zod": "npm:zod",
+    "@std/testing/": "jsr:@std/testing/",
     "@/": "./"
   }
 }
